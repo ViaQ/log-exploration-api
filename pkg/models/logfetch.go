@@ -1,61 +1,17 @@
-package main
+package models
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	//"reflect"
+	"reflect"
 	"strings"
-	"net/http"
-    "github.com/gin-gonic/gin"
-	"flag"
-	"github.com/elastic/go-elasticsearch/v7"
-	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
-func main() {
-
-	esAddress := flag.String("es-address", "https://localhost:9200", "ElasticSearch Server Address")
-	esCert := flag.String("es-cert","admin-cert","admin-cert file location")
-	esKey := flag.String("es-key","admin-key","admin-key file location")
-	flag.Parse() //fetch command line parameters
-	var esClient *elasticsearch.Client
-
-	esClient = InitializeElasticSearchClient(esAddress,esCert,esKey,esClient)
-
-	r := gin.Default() //initialise
-
-	r.Use(AddESClientToContext(esClient))
-	//	endpoint to get all logs
-	r.GET("/", getAllLogs)
-
-	//endpoint to get infrastructure logs
-	r.GET("/infra", getInfrastructureLogs)
-
-	//endpoint to get application logs
-	r.GET("/app", getApplicationLogs)
-
-	//endpoint to get audit logs
-	r.GET("/audit", getAuditLogs)
-
-	//endpoint to filter logs by start and finish time - please enter time in the following format- HH:MM:SS
-	r.GET("/filter/:startTime/:finishTime", filterByTime)
-
-	r.Run() //run server on port 8080
-}
-func filterByTime(c *gin.Context){
-
-	startTime:= c.Params.ByName("startTime")
-	finishTime:= c.Params.ByName("finishTime")
+func FilterByTime(esClient *elasticsearch.Client, startTime string, finishTime string) []string{
 
 	fmt.Println(startTime)
 	fmt.Println(finishTime)
-
-	esClient,ok := c.MustGet("esClient").(*elasticsearch.Client) //fetch esClient from context
-	if !ok {
-		fmt.Println("An Error Occurred")
-	}
 
 	var result map[string]interface{}
 	var logs[] string // create a slice of type string to append logs to
@@ -86,44 +42,11 @@ func filterByTime(c *gin.Context){
 		}
 	}
 
-	c.JSON(200, gin.H{
-		"Logs": logs, //return logs
-	})
+	return logs
 
 }
-func InitializeElasticSearchClient(esAddress *string,esCert *string,esKey *string,esClient *elasticsearch.Client) *elasticsearch.Client {
 
-
-	cert, err := tls.LoadX509KeyPair(*esCert, *esKey)
-	if err != nil {
-		fmt.Println(err)
-	}
-	cfg := elasticsearch.Config{
-		Addresses: []string{
-			"https://localhost:9200",
-		},
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true,
-				Certificates: []tls.Certificate{cert}},
-		},
-	}
-	esClient, err = elasticsearch.NewClient(cfg)
-	if(err!=nil) {
-		fmt.Println("Error", err)
-	}else{
-		fmt.Println("No Error",esClient)
-	}
-
-	return esClient
-
-
-}
-func getInfrastructureLogs(c *gin.Context) {
-
-	esClient,ok := c.MustGet("esClient").(*elasticsearch.Client) //fetch ESClient from context
-	if !ok {
-		fmt.Println("An Error Occurred")
-	}
+func GetInfrastructureLogs(esClient *elasticsearch.Client) []string{
 
 	//fetch logs from index infra-000001
 	searchResult, err := esClient.Search(
@@ -142,14 +65,14 @@ func getInfrastructureLogs(c *gin.Context) {
 
 	var logs[] string
 
-	 logs = getRelevantLogs(searchResult) // create a slice of type string to append logs to
+	logs = getRelevantLogs(searchResult) // create a slice of type string to append logs to
 
-	c.JSON(200, gin.H{
-		"Logs": logs, //return logs
-	})
+
+		return logs//return logs
+
 
 }
-func getAllLogs(c *gin.Context){
+func GetAllLogs(esClient *elasticsearch.Client) []string{
 	esClient,ok := c.MustGet("esClient").(*elasticsearch.Client) //fetch esClient from context
 	if !ok {
 		fmt.Println("An Error Occurred")
@@ -169,12 +92,10 @@ func getAllLogs(c *gin.Context){
 
 	logs = getRelevantLogs(searchResult)
 
-	c.JSON(200, gin.H{
-		"Logs": logs, //return logs
-	})
+	return logs
 
 }
-func getApplicationLogs(c *gin.Context){
+func GetApplicationLogs(esClient *elasticsearch.Client) []string{
 
 	esClient,ok := c.MustGet("esClient").(*elasticsearch.Client) //fetch ESClient from context
 	if !ok {
@@ -195,11 +116,9 @@ func getApplicationLogs(c *gin.Context){
 	var logs[] string
 
 	logs = getRelevantLogs(searchResult)
-	c.JSON(200, gin.H{
-		"Logs": logs, //return logs
-	})
+	return logs
 }
-func getAuditLogs(c *gin.Context){
+func GetAuditLogs(esClient *elasticsearch.Client) []string{
 
 	esClient,ok := c.MustGet("esClient").(*elasticsearch.Client) //fetch ESClient from context
 	if !ok {
@@ -219,18 +138,10 @@ func getAuditLogs(c *gin.Context){
 	var logs[] string
 	logs = getRelevantLogs(searchResult)
 
-	c.JSON(200, gin.H{
-		"Logs": logs, //return logs
-	})
+	return logs
 
 }
-func AddESClientToContext(esClient *elasticsearch.Client) gin.HandlerFunc {
-	//add ESClient to context
-	return func(c *gin.Context) {
-		c.Set("esClient", esClient)
-		c.Next()
-	}
-}
+
 func getRelevantLogs(searchResult *esapi.Response) []string{
 
 	var result map[string]interface{}
@@ -248,5 +159,4 @@ func getRelevantLogs(searchResult *esapi.Response) []string{
 	}
 	return logs
 }
-
 
