@@ -141,11 +141,11 @@ func (repository *ElasticRepository) FilterByPodName(podName string) ([]string, 
 	esClient := repository.esClient
 
 	query := fmt.Sprintf(`{"query": {
-									"match" : {
-									"kubernetes.pod_name":{"query":"%s"}
-												}
-											}
-									}`, podName)
+					"match" : {
+							"kubernetes.pod_name":{"query":"%s"}
+						  }
+					}
+				}`, podName)
 	var b strings.Builder
 	b.WriteString(query)
 	body := strings.NewReader(b.String())
