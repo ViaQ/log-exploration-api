@@ -16,7 +16,6 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-
 	logscontroller.NewLogsController(repository, router)
 	router.Run()
 }
