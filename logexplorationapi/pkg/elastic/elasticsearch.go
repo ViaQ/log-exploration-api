@@ -57,10 +57,10 @@ func (repository *ElasticRepository) FilterByIndex(index string) ([]string, erro
 		esClient.Search.WithPretty(),
 	)
 
-	var logsList []string // create a slice of type string to append logs to
+	var logs []string // create a slice of type string to append logs to
 
 	if err != nil {
-		return logsList, getError(err)
+		return logs, getError(err)
 	}
 
 	var result map[string]interface{}
@@ -69,22 +69,22 @@ func (repository *ElasticRepository) FilterByIndex(index string) ([]string, erro
 	if err != nil {
 		fmt.Println("Error occurred while decoding JSON ", err)
 		err = errors.New("An Internal error occurred")
-		return logsList, err
+		return logs, err
 	}
 
 	if _, ok := result["hits"]; !ok {
 		fmt.Println("An error occurred while fetching logs - ", result)
-		return logsList, logs.NotFoundError()
+		return logs, errors.New("Not Found Error")
 	}
 
-	logsList = getRelevantLogs(result)
+	logs = getRelevantLogs(result)
 
-	return logsList, nil
+	return logs, nil
 
 }
 func (repository *ElasticRepository) FilterByTime(startTime time.Time, finishTime time.Time) ([]string, error) {
 
-	var logsList []string // create a slice of type string to append logs to
+	var logs []string // create a slice of type string to append logs to
 
 	//splitting date-time and timezone to populate the query
 	start := strings.Split(startTime.String(), " ")[0] //format- YYYY-MM-DDTHH:MM:SS
@@ -115,29 +115,29 @@ func (repository *ElasticRepository) FilterByTime(startTime time.Time, finishTim
 		esClient.Search.WithPretty(),
 	)
 	if err != nil {
-		return logsList, getError(err)
+		return logs, getError(err)
 	}
 	var result map[string]interface{}
 	err = json.NewDecoder(searchResult.Body).Decode(&result) //convert searchresult to map[string]interface{}
 	if err != nil {
 		fmt.Println("Error occurred while decoding JSON ", err)
 		err = errors.New("An Internal error occurred")
-		return logsList, err
+		return logs, err
 	}
 
 	if _, ok := result["hits"]; !ok {
 		fmt.Println("An error occurred while fetching logs..Result obtained is null", result)
-
-		return logsList, logs.NotFoundError()
+		err := errors.New("Not Found Error")
+		return nil, err
 	}
 
-	logsList = getRelevantLogs(result)
+	logs = getRelevantLogs(result)
 
-	return logsList, nil
+	return logs, nil
 }
 func (repository *ElasticRepository) FilterByPodName(podName string) ([]string, error) {
 
-	var logsList []string // create a slice of type string to append logs to
+	var logs []string // create a slice of type string to append logs to
 
 	esClient := repository.esClient
 
@@ -159,25 +159,25 @@ func (repository *ElasticRepository) FilterByPodName(podName string) ([]string, 
 		esClient.Search.WithPretty(),
 	)
 	if err != nil {
-		return logsList, getError(err)
+		return logs, getError(err)
 	}
 	var result map[string]interface{}
 	err = json.NewDecoder(searchResult.Body).Decode(&result) //convert searchresult to map[string]interface{}
 	if err != nil {
 		fmt.Println("Error occurred while decoding JSON ", err)
 		err = errors.New("An Internal error occurred")
-		return logsList, err
+		return logs, err
 	}
 
 	if _, ok := result["hits"]; !ok {
 		fmt.Println("An error occurred while fetching logs..Result obtained is null", result)
-
-		return logsList, logs.NotFoundError()
+		err := errors.New("Not Found Error")
+		return logs, err
 	}
 
-	logsList = getRelevantLogs(result)
+	logs = getRelevantLogs(result)
 
-	return logsList, nil
+	return logs, nil
 
 }
 
@@ -190,43 +190,43 @@ func (repository *ElasticRepository) GetAllLogs() ([]string, error) {
 		esClient.Search.WithPretty(),
 	)
 
-	var logsList []string // create a slice of type string to append logs to
+	var logs []string // create a slice of type string to append logs to
 
 	if err != nil {
-		return logsList, getError(err)
+		return logs, getError(err)
 	}
 	var result map[string]interface{}
 	err = json.NewDecoder(searchResult.Body).Decode(&result) //convert searchresult to map[string]interface{}
 	if err != nil {
 		fmt.Println("Error occurred while decoding JSON ", err)
 		err = errors.New("An Internal error occurred")
-		return logsList, err
+		return logs, err
 	}
 
 	if _, ok := result["hits"]; !ok {
 		fmt.Println("An error occurred while fetching logs..Result obtained is null", result)
 		err := errors.New("An Error Occurred..")
-		return logsList, err
+		return logs, err
 	}
 
-	logsList = getRelevantLogs(result)
+	logs = getRelevantLogs(result)
 
-	return logsList, nil
+	return logs, nil
 }
 func getRelevantLogs(result map[string]interface{}) []string {
 
 	// iterate through the logs and add them to a slice
-	var logsList []string
+	var logs []string
 	for _, hit := range result["hits"].(map[string]interface{})["hits"].([]interface{}) {
 		log := fmt.Sprintf("%v", hit)
-		logsList = append(logsList, log)
+		logs = append(logs, log)
 	}
 
-	if len(logsList) == 0 {
-		logsList = append(logsList, "No logs Present or the entry does not exist")
+	if len(logs) == 0 {
+		logs = append(logs, "No logs Present or the entry does not exist")
 	}
 
-	return logsList
+	return logs
 }
 
 func getError(err error) error {
