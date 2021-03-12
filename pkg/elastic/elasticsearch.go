@@ -7,9 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/elastic/go-elasticsearch/v7"
-	"logexplorationapi/pkg/configuration"
-	"logexplorationapi/pkg/constants"
-	"logexplorationapi/pkg/logs"
+	"log-exploration-api-1/pkg/configuration"
+	"log-exploration-api-1/pkg/constants"
+	"log-exploration-api-1/pkg/logs"
 	"net/http"
 	"strings"
 	"time"
@@ -213,6 +213,71 @@ func (repository *ElasticRepository) GetAllLogs() ([]string, error) {
 
 	return logsList, nil
 }
+
+func (repository *ElasticRepository) FilterLogsMultipleParameters(podName string, namespace string, startTime time.Time, finishTime time.Time) ([]string, error) {
+	var logsList []string // create a slice of type string to append logs to
+
+	esClient := repository.esClient
+
+	start := strings.Split(startTime.String(), " ")[0] //format- YYYY-MM-DDTHH:MM:SS
+	finish := strings.Split(finishTime.String(), " ")[0]
+	timezone := strings.Split(startTime.String(), " ")[2] //format- +0000
+
+	query := fmt.Sprintf(`{
+	"query": {
+	"bool": {
+	    	"should": [
+				{"term": { "kubernetes.namespace_name": "%s" }},
+				{"term": { "kubernetes.pod_name": "%s" }},
+				{"range" : {
+					"@timestamp" : {
+						"gte": "%s",
+  						"lte": "%s",
+						"time_zone":"%s"
+				}
+			}}
+
+			],
+	"minimum_should_match" : 3
+
+		}
+	}
+}`, namespace, podName, start, finish, timezone)
+
+	var b strings.Builder
+	b.WriteString(query)
+	body := strings.NewReader(b.String())
+
+	searchResult, err := esClient.Search(
+		esClient.Search.WithContext(context.Background()),
+		esClient.Search.WithBody(body),
+		esClient.Search.WithIndex(constants.InfraIndexName, constants.AuditIndexName, constants.AppIndexName),
+		esClient.Search.WithTrackTotalHits(true),
+		esClient.Search.WithPretty(),
+	)
+	if err != nil {
+		return logsList, getError(err)
+	}
+	var result map[string]interface{}
+	err = json.NewDecoder(searchResult.Body).Decode(&result) //convert searchresult to map[string]interface{}
+	if err != nil {
+		fmt.Println("Error occurred while decoding JSON ", err)
+		err = errors.New("An Internal error occurred")
+		return logsList, err
+	}
+
+	if _, ok := result["hits"]; !ok {
+		fmt.Println("An error occurred while fetching logs..Result obtained is null ", result)
+
+		return logsList, logs.NotFoundError()
+	}
+
+	logsList = getRelevantLogs(result)
+
+	return logsList, nil
+
+}
+
 func getRelevantLogs(result map[string]interface{}) []string {
 
 	// iterate through the logs and add them to a slice
@@ -228,6 +293,7 @@ func getRelevantLogs(result map[string]interface{}) []string {
 
 	return logsList
 }
+
 
 func getError(err error) error {
 

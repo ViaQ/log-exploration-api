@@ -3,15 +3,16 @@ package main
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"logexplorationapi/pkg/configuration"
-	"logexplorationapi/pkg/elastic"
-	"logexplorationapi/pkg/logscontroller"
+	"log-exploration-api-1/pkg/configuration"
+	"log-exploration-api-1/pkg/elastic"
+	"log-exploration-api-1/pkg/logscontroller"
 )
 
 func main() {
 	router := gin.Default()
 	appConf := configuration.ParseArgs()
 	repository,err := elastic.NewElasticRepository(appConf)
+	fmt.Println(repository)
 	if(err!=nil){
 		fmt.Println(err)
 		return

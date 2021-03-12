@@ -3,7 +3,7 @@ package logscontroller
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"logexplorationapi/pkg/logs"
+	"log-exploration-api-1/pkg/logs"
 	"net/http"
 	"time"
 )
@@ -19,6 +19,7 @@ func NewLogsController(logsProvider logs.LogsProvider, router *gin.Engine) {
 	router.GET("timefilter/:startTime/:finishTime", controller.FilterLogsByTime)
 	router.GET("indexfilter/:index", controller.FilterLogsByIndex)
 	router.GET("podnamefilter/:podname", controller.FilterLogsByPodName)
+	router.GET("logs/:podname/:namespace/:starttime/:finishtime", controller.FilterLogsMultipleParameters)
 
 }
 
@@ -130,5 +131,46 @@ func (controller *logsController) FilterLogsByTime(gctx *gin.Context) {
 	}
 	gctx.JSON(http.StatusOK, gin.H{
 		"Logs": logsList, //return logs
+	})
+}
+func (controller *logsController) FilterLogsMultipleParameters(gctx *gin.Context) {
+
+	podName := gctx.Params.ByName("podname")
+	namespace := gctx.Params.ByName("namespace")
+	starttime := gctx.Params.ByName("starttime")
+	finishtime := gctx.Params.ByName("finishtime")
+
+	startTime, err := time.Parse(time.RFC3339, starttime)
+	if err != nil {
+		gctx.JSON(http.StatusBadRequest, gin.H{
+			"Error": "Incorrect format: Please Enter Start Time in the following format YYYY-MM-DDTHH:MM:SS[TIMEZONE ex:+00:00]",
+		})
+		fmt.Println(err)
+		return
+	}
+	finishTime, err := time.Parse(time.RFC3339, finishtime)
+	if err != nil {
+		gctx.JSON(http.StatusBadRequest,
+			gin.H{"Error": "Incorrect format: Please Finish Start Time in the following format YYYY-MM-DDTHH:MM:SS[TIMEZONE ex:+00:00]"})
+		fmt.Println(err)
+		return
+
+	}
+	logsList, err := controller.logsProvider.FilterLogsMultipleParameters(podName, namespace, startTime, finishTime)
+
+	if err != nil {
+		if err.Error() == logs.NotFoundError().Error() {
+			gctx.JSON(http.StatusBadRequest, gin.H{
+				"Please Check Entered Parameters": err,
+			})
+			return
+		}
+		gctx.JSON(http.StatusInternalServerError, gin.H{
+			"An Error Occurred ": err,
+		})
+		return
+	}
+	gctx.JSON(http.StatusOK, gin.H{
+		"Logs ": logsList, //return logs
 	})
 }

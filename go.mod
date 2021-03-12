@@ -1,4 +1,4 @@
-module logexplorationapi/pkg
+module log-exploration-api-1
 
 go 1.16
 

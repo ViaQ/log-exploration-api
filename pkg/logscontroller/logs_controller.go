@@ -7,4 +7,5 @@ type LogsController interface {
 	FilterLogsByTime(gctx *gin.Context)
 	FilterLogsByIndex(gctx *gin.Context)
 	FilterLogsByPodName(gctx *gin.Context)
+	FilterLogsMultipleParameters(gctx *gin.Context)
 }
