@@ -6,25 +6,26 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/elastic/go-elasticsearch/v7"
-	"log-exploration-api-1/pkg/configuration"
-	"log-exploration-api-1/pkg/constants"
-	"log-exploration-api-1/pkg/logs"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/ViaQ/log-exploration-api/pkg/configuration"
+	"github.com/ViaQ/log-exploration-api/pkg/constants"
+	"github.com/ViaQ/log-exploration-api/pkg/logs"
+	"github.com/elastic/go-elasticsearch/v7"
+	"go.uber.org/zap"
 )
 
 type ElasticRepository struct {
 	esClient *elasticsearch.Client
+	log      *zap.Logger
 }
 
-func NewElasticRepository(config *configuration.ApplicationConfiguration) (logs.LogsProvider, error) {
-
+func NewElasticRepository(log *zap.Logger, config *configuration.ElasticsearchConfig) (logs.LogsProvider, error) {
 	cert, err := tls.LoadX509KeyPair(config.EsCert, config.EsKey)
 	if err != nil {
-		fmt.Println("An error occurred while configuring cert- ", err)
-		err = errors.New("An error occurred while configuring cert. Please check if es-cert and es-key are valid")
+		log.Error("an error occurred while configuring cert", zap.Error(err))
 		return nil, err
 	}
 	cfg := elasticsearch.Config{
@@ -32,23 +33,27 @@ func NewElasticRepository(config *configuration.ApplicationConfiguration) (logs.
 			config.EsAddress,
 		},
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true,
-				Certificates: []tls.Certificate{cert}},
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+				Certificates:       []tls.Certificate{cert},
+			},
 		},
 	}
+
 	esClient, err := elasticsearch.NewClient(cfg)
 	if err != nil {
-		fmt.Println("Fialed to configure ElasticSearch- ", err)
-		err = errors.New("Fialed to configure ElasticSearch")
+		log.Error("failed to configure Elasticsearch", zap.Error(err))
 		return nil, err
 	}
 
-	repository := &ElasticRepository{esClient: esClient}
+	repository := &ElasticRepository{
+		log:      log,
+		esClient: esClient,
+	}
 	return repository, nil
 }
 
 func (repository *ElasticRepository) FilterByIndex(index string) ([]string, error) {
-
 	esClient := repository.esClient
 	searchResult, err := esClient.Search(
 		esClient.Search.WithContext(context.Background()),
@@ -60,6 +65,7 @@ func (repository *ElasticRepository) FilterByIndex(index string) ([]string, erro
 	var logsList []string // create a slice of type string to append logs to
 
 	if err != nil {
+		repository.log.Error("failed exec ES query", zap.Error(err))
 		return logsList, getError(err)
 	}
 
@@ -67,13 +73,12 @@ func (repository *ElasticRepository) FilterByIndex(index string) ([]string, erro
 
 	err = json.NewDecoder(searchResult.Body).Decode(&result) //convert searchresult to map[string]interface{}
 	if err != nil {
-		fmt.Println("Error occurred while decoding JSON ", err)
-		err = errors.New("An Internal error occurred")
+		repository.log.Error("Error occurred while decoding JSON", zap.Error(err))
 		return logsList, err
 	}
 
 	if _, ok := result["hits"]; !ok {
-		fmt.Println("An error occurred while fetching logs - ", result)
+		repository.log.Error("An error occurred while fetching logs", zap.Any("result", result))
 		return logsList, logs.NotFoundError()
 	}
 
@@ -91,17 +96,8 @@ func (repository *ElasticRepository) FilterByTime(startTime time.Time, finishTim
 	finish := strings.Split(finishTime.String(), " ")[0]
 	timezone := strings.Split(startTime.String(), " ")[2] //format- +0000
 	esClient := repository.esClient
-	query := fmt.Sprintf(`{
-		"query": {
-		"range" : {
-			"@timestamp" : {
-				"gte": "%s",
-  				"lte": "%s",
-				"time_zone":"%s"
-			}
-		}
-	}
-	}`, start, finish, timezone)
+	query := fmt.Sprintf(`{"query":{"range":{"@timestamp":{"gte":"%s","lte":"%s","time_zone":"%s"}}}}`,
+		start, finish, timezone)
 
 	var b strings.Builder
 	b.WriteString(query)
@@ -115,19 +111,19 @@ func (repository *ElasticRepository) FilterByTime(startTime time.Time, finishTim
 		esClient.Search.WithPretty(),
 	)
 	if err != nil {
+		repository.log.Error("failed exec ES query", zap.Error(err))
 		return logsList, getError(err)
 	}
+
 	var result map[string]interface{}
 	err = json.NewDecoder(searchResult.Body).Decode(&result) //convert searchresult to map[string]interface{}
 	if err != nil {
-		fmt.Println("Error occurred while decoding JSON ", err)
-		err = errors.New("An Internal error occurred")
+		repository.log.Error("Error occurred while decoding JSON", zap.Error(err))
 		return logsList, err
 	}
 
 	if _, ok := result["hits"]; !ok {
-		fmt.Println("An error occurred while fetching logs..Result obtained is null", result)
-
+		repository.log.Error("An error occurred while fetching logs..Result obtained is null", zap.Any("result", result))
 		return logsList, logs.NotFoundError()
 	}
 
@@ -135,18 +131,14 @@ func (repository *ElasticRepository) FilterByTime(startTime time.Time, finishTim
 
 	return logsList, nil
 }
+
 func (repository *ElasticRepository) FilterByPodName(podName string) ([]string, error) {
 
 	var logsList []string // create a slice of type string to append logs to
 
 	esClient := repository.esClient
 
-	query := fmt.Sprintf(`{"query": {
-									"match" : {
-									"kubernetes.pod_name":{"query":"%s"}
-												}
-											}
-									}`, podName)
+	query := fmt.Sprintf(`{"query":{"match":{"kubernetes.pod_name":{"query":"%s"}}}}`, podName)
 	var b strings.Builder
 	b.WriteString(query)
 	body := strings.NewReader(b.String())
@@ -159,19 +151,18 @@ func (repository *ElasticRepository) FilterByPodName(podName string) ([]string, 
 		esClient.Search.WithPretty(),
 	)
 	if err != nil {
+		repository.log.Error("failed exec ES query", zap.Error(err))
 		return logsList, getError(err)
 	}
 	var result map[string]interface{}
 	err = json.NewDecoder(searchResult.Body).Decode(&result) //convert searchresult to map[string]interface{}
 	if err != nil {
-		fmt.Println("Error occurred while decoding JSON ", err)
-		err = errors.New("An Internal error occurred")
+		repository.log.Error("Error occurred while decoding JSON", zap.Error(err))
 		return logsList, err
 	}
 
 	if _, ok := result["hits"]; !ok {
-		fmt.Println("An error occurred while fetching logs..Result obtained is null", result)
-
+		repository.log.Error("An error occurred while fetching logs..Result obtained is null", zap.Any("result", result))
 		return logsList, logs.NotFoundError()
 	}
 
@@ -193,19 +184,19 @@ func (repository *ElasticRepository) GetAllLogs() ([]string, error) {
 	var logsList []string // create a slice of type string to append logs to
 
 	if err != nil {
+		repository.log.Error("failed exec ES query", zap.Error(err))
 		return logsList, getError(err)
 	}
+
 	var result map[string]interface{}
 	err = json.NewDecoder(searchResult.Body).Decode(&result) //convert searchresult to map[string]interface{}
 	if err != nil {
-		fmt.Println("Error occurred while decoding JSON ", err)
-		err = errors.New("An Internal error occurred")
+		repository.log.Error("Error occurred while decoding JSON", zap.Error(err))
 		return logsList, err
 	}
 
 	if _, ok := result["hits"]; !ok {
-		fmt.Println("An error occurred while fetching logs..Result obtained is null", result)
-		err := errors.New("An Error Occurred..")
+		repository.log.Error("An error occurred while fetching logs..Result obtained is null", zap.Any("result", result))
 		return logsList, err
 	}
 
@@ -224,15 +215,15 @@ func (repository *ElasticRepository) FilterLogsMultipleParameters(podName string
 	timezone := strings.Split(startTime.String(), " ")[2] //format- +0000
 
 	query := fmt.Sprintf(`{
-	"query": {
+"query": {
 	"bool": {
-	    	"should": [
+		"should": [
 				{"term": { "kubernetes.namespace_name": "%s" }},
 				{"term": { "kubernetes.pod_name": "%s" }},
 				{"range" : {
 					"@timestamp" : {
 						"gte": "%s",
-  						"lte": "%s",
+						"lte": "%s",
 						"time_zone":"%s"
 				}
 			}}
@@ -256,19 +247,18 @@ func (repository *ElasticRepository) FilterLogsMultipleParameters(podName string
 		esClient.Search.WithPretty(),
 	)
 	if err != nil {
+		repository.log.Error("failed exec ES query", zap.Error(err))
 		return logsList, getError(err)
 	}
 	var result map[string]interface{}
 	err = json.NewDecoder(searchResult.Body).Decode(&result) //convert searchresult to map[string]interface{}
 	if err != nil {
-		fmt.Println("Error occurred while decoding JSON ", err)
-		err = errors.New("An Internal error occurred")
+		repository.log.Error("Error occurred while decoding JSON", zap.Error(err))
 		return logsList, err
 	}
 
 	if _, ok := result["hits"]; !ok {
-		fmt.Println("An error occurred while fetching logs..Result obtained is null ", result)
-
+		repository.log.Error("An error occurred while fetching logs..Result obtained is null", zap.Any("result", result))
 		return logsList, logs.NotFoundError()
 	}
 
@@ -279,7 +269,6 @@ func (repository *ElasticRepository) FilterLogsMultipleParameters(podName string
 }
 
 func getRelevantLogs(result map[string]interface{}) []string {
-
 	// iterate through the logs and add them to a slice
 	var logsList []string
 	for _, hit := range result["hits"].(map[string]interface{})["hits"].([]interface{}) {
@@ -294,11 +283,8 @@ func getRelevantLogs(result map[string]interface{}) []string {
 	return logsList
 }
 
-
 func getError(err error) error {
-
 	fmt.Println("An Error occurred while getting a response: ", err)
 	err = errors.New("An Error occurred while fetching logs")
 	return err
-
 }

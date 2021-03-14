@@ -3,26 +3,23 @@ package configuration
 import "flag"
 
 type ApplicationConfiguration struct {
-	EsAddress string
-	EsCert    string
-	EsKey     string
+	LogLevel      string
+	Elasticsearch *ElasticsearchConfig
 }
 
 func NewApplicationConfiguration() *ApplicationConfiguration {
 	return &ApplicationConfiguration{
-		EsAddress: "https://localhost:9200",
-		EsCert:    "admin-cert",
-		EsKey:     "admin-key",
+		Elasticsearch: &ElasticsearchConfig{},
 	}
-
 }
 
 func ParseArgs() *ApplicationConfiguration {
 	c := NewApplicationConfiguration()
 
-	flag.StringVar(&c.EsAddress, "es-addr", "https://localhost:9200", "ElasticSearch Server Address")
-	flag.StringVar(&c.EsCert, "es-cert", "admin-cert", "admin-cert file location")
-	flag.StringVar(&c.EsKey, "es-key", "admin-key", "admin-key file location")
+	flag.StringVar(&c.LogLevel, "log-level", "info", "application log level (debug | info | warn | error)")
+	flag.StringVar(&c.Elasticsearch.EsAddress, "es-addr", "https://localhost:9200", "Elasticsearch Server Address")
+	flag.StringVar(&c.Elasticsearch.EsCert, "es-cert", "admin-cert", "admin-cert file location")
+	flag.StringVar(&c.Elasticsearch.EsKey, "es-key", "admin-key", "admin-key file location")
 	flag.Parse()
 
 	return c
