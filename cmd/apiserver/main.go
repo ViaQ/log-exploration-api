@@ -14,6 +14,7 @@ import (
 )
 
 func main() {
+	gin.SetMode(gin.ReleaseMode)
 	appConf := configuration.ParseArgs()
 
 	log, err := initCustomZapLogger(appConf.LogLevel)
@@ -31,7 +32,7 @@ func main() {
 		return
 	}
 
-	router := gin.Default()
+	router := gin.New()
 	logscontroller.NewLogsController(log.Named("logs-controller"), repository, router)
 
 	router.Run()

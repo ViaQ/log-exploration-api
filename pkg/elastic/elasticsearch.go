@@ -23,21 +23,24 @@ type ElasticRepository struct {
 }
 
 func NewElasticRepository(log *zap.Logger, config *configuration.ElasticsearchConfig) (logs.LogsProvider, error) {
-	cert, err := tls.LoadX509KeyPair(config.EsCert, config.EsKey)
-	if err != nil {
-		log.Error("an error occurred while configuring cert", zap.Error(err))
-		return nil, err
-	}
 	cfg := elasticsearch.Config{
 		Addresses: []string{
 			config.EsAddress,
 		},
-		Transport: &http.Transport{
+	}
+
+	if config.UseTLS {
+		cert, err := tls.LoadX509KeyPair(config.EsCert, config.EsKey)
+		if err != nil {
+			log.Error("an error occurred while configuring cert", zap.Error(err))
+			return nil, err
+		}
+		cfg.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,
 				Certificates:       []tls.Certificate{cert},
 			},
-		},
+		}
 	}
 
 	esClient, err := elasticsearch.NewClient(cfg)
