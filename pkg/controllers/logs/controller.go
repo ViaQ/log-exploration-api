@@ -27,8 +27,7 @@ func NewLogsController(log *zap.Logger, logsProvider logs.LogsProvider, router *
 	r.GET("timefilter/:startTime/:finishTime", controller.FilterLogsByTime)
 	r.GET("indexfilter/:index", controller.FilterLogsByIndex)
 	r.GET("podnamefilter/:podname", controller.FilterLogsByPodName)
-	r.GET(":podname/:namespace/:starttime/:finishtime", controller.FilterLogsMultipleParameters)
-
+	r.GET("multifilter/:podname/:namespace/:starttime/:finishtime", controller.FilterLogsMultipleParameters)
 	return controller
 }
 
