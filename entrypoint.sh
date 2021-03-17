@@ -5,7 +5,7 @@ set -eou pipefail
 : ${ES_CERT:="admin-cert"}
 : ${ES_KEY:="admin-key"}
 
-if ["$1" == "log-exploration-api"]; then
+if [ "$1" = "log-exploration-api" ]; then
 	exec log-exploration-api \
 		-es-addr=${ES_ADDR} \
 		-es-cert=${ES_CERT} \
