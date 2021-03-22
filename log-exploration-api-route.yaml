@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Route
+metadata:
+  name: log-exploration-api-route
+  namespace: openshift-logging
+  labels:
+    app: log-exploration-api-route
+spec:
+  to:
+    kind: Service
+    name: log-exploration-api-service

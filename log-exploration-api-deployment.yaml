@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-exploration-api
+  namespace: openshift-logging
+  labels:
+    app: log-exploration-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: log-exploration-api
+  template:
+    metadata:
+      labels:
+        app: log-exploration-api
+    spec:
+      containers:
+      - name: log-exploration-api-container
+        image: quay.io/openshift-logging/log-exploration-api:latest
+        env:
+        - name: ES_ADDR
+          value: https://elasticsearch.openshift-logging:9200
+        - name: ES_CERT
+          value: /etc/openshift/elasticsearch/secret/admin-cert
+        - name: ES_KEY
+          value: /etc/openshift/elasticsearch/secret/admin-key
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+          - name: certificates
+            mountPath: /etc/openshift/elasticsearch/secret
+      volumes:
+        - name: certificates
+          secret:
+             secretName: elasticsearch
+             defaultMode: 420
+
+        
