@@ -27,16 +27,16 @@ func TestGetAllLogs(t *testing.T) {
 	repository := esRepository
 	logList, err := repository.GetAllLogs()
 	if err != nil {
-		t.Fail()
+		t.Error("Error: ", err)
 	}
 	if logList == nil {
-		t.Fail()
+		t.Error("Failed to fetch the logs!")
 	}
 	if !((strings.Contains(logList[0], "index") &&
 		 strings.Contains(logList[0], "container-runtime-endpoint") && 
 		 strings.Contains(logList[0], "pod")) ||
 	     strings.Contains(logList[0], "No logs")) {
-		t.Fail()
+		t.Error("Logs not found!")
 	}
 }
 
@@ -44,13 +44,13 @@ func TestFilterByIndex(t *testing.T) {
 	repository := esRepository
 	logList, err := repository.FilterByIndex(constants.InfraIndexName)
 	if err != nil {
-		t.Fail()
+		t.Error("Error: ", err)
 	}
 	if logList == nil {
-		t.Fail()
+		t.Error("Index not found!")
 	}
 	if !(strings.Contains(logList[0], "index") || strings.Contains(logList[0], "No logs")) {
-		t.Fail()
+		t.Error("Logs not found!")
 	}
 }
 
@@ -60,16 +60,13 @@ func TestFilterByTime(t *testing.T) {
 	count := 10
 	t1 := t2.Add(time.Duration(-count) * time.Minute)
 	logList, err := repository.FilterByTime(t1, t2)
-	if err != nil {
-		t.Fail()
-	}
-	if logList == nil {
-		t.Fail()
+	if err != nil || logList == nil {
+		t.Error("Error: ", err)
 	}
 	if !((strings.Contains(logList[0], "timestamp") &&
 		 strings.Contains(logList[0], "pod")) ||
 	     strings.Contains(logList[0], "No logs")) {
-		t.Fail()
+		t.Error("Logs not found!")
 	}
 }
 
@@ -77,14 +74,14 @@ func TestFilterByPodname(t *testing.T) {
 	repository := esRepository
 	logList, err := repository.FilterByPodName("kube-apiserver-ip-10-0-146-1.ec2.internal")
 	if err != nil {
-		t.Fail()
+		t.Error("Error: ", err)
 	}
 	if logList == nil {
-		t.Fail()
+		t.Error("Invalid podname!")
 	}
 	if !(strings.Contains(logList[0], "pod_name") ||
 	     strings.Contains(logList[0], "No logs")) {
-		t.Fail()
+		t.Error("Logs not found!")
 	}
 }
 
@@ -95,16 +92,15 @@ func TestFilterLogsMultipleParameters(t *testing.T) {
 	t1 := t2.Add(time.Duration(-count) * time.Minute)
 	logList, err := repository.FilterLogsMultipleParameters("kube-apiserver-ip-10-0-146-1.ec2.internal", "openshift-kube-apiserver", t1, t2)
 	if err != nil {
-		t.Fail()
+		t.Error("Error: ", err)
 	}
-
 	if logList == nil {
-		t.Fail()
+		t.Error("Invalid podname/namepsace!")
 	}
 	if !((strings.Contains(logList[0], "namespace_name") &&
 		strings.Contains(logList[0], "pod_name")) ||
 	     strings.Contains(logList[0], "No logs")) {
-		t.Fail()
+		t.Error("Logs not found!")
 	}
 }
 
