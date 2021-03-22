@@ -23,3 +23,11 @@ image: build
 
 image-publish: image
 	docker push ${EXECUTABLE}:${VERSION} ${IMAGE_PUSH_REGISTRY}:${VERSION}
+
+test-e2e:
+	docker-compose up -d
+	@sleep 5
+	chmod +x test/e2e/populate_indices.sh
+	test/e2e/populate_indices.sh
+	go test -v test/e2e/*.go
+	docker-compose down -v
