@@ -35,16 +35,14 @@ func TestForGetAllLogs(t *testing.T) {
 	p, err := ioutil.ReadAll(w.Body)
 	pageOK := err == nil && strings.Index(string(p), "Logs") > 0
 
-	if status == http.StatusBadRequest {
-		t.Error("Bad request!")
-		t.Fail()
+	switch status {
+		case http.StatusBadRequest, http.StatusInternalServerError:
+			t.Errorf("Failed with status code: ", status)
+		case http.StatusOK:
+			t.Errorf("Logs not found!")
 	}
-	if status == http.StatusInternalServerError {
-		t.Error("Internal Server error!")
-	}
-	if !(status == http.StatusOK && pageOK) {
+	if !pageOK {
 		t.Error("Logs not found!")
-		t.Fail()
 	}
 }
 
@@ -55,13 +53,15 @@ func TestFilterLogsByIndex(t *testing.T) {
 	p, err := ioutil.ReadAll(w.Body)
 	pageOK := err == nil && strings.Index(string(p), "Logs") > 0
 
-	if status == http.StatusBadRequest {
-		t.Error("Bad request: Invalid index!")
+	switch status {
+	case http.StatusBadRequest:
+		t.Errorf("Bad request: Invalid index!")
+	case http.StatusInternalServerError:
+		t.Errorf("Internal Server error!")
+	case http.StatusOK:
+		t.Errorf("Logs not found!")
 	}
-	if status == http.StatusInternalServerError {
-		t.Error("Internal Server error!")
-	}
-	if !(status == http.StatusOK && pageOK) {
+	if !pageOK {
 		t.Error("Logs not found!")
 	}
 }
@@ -73,13 +73,15 @@ func TestFilterLogsByTime(t *testing.T) {
 	p, err := ioutil.ReadAll(w.Body)
 	pageOK := err == nil && strings.Index(string(p), "Logs") > 0
 
-	if status == http.StatusBadRequest {
-		t.Error("Bad request: Invalid index!")
+	switch status {
+	case http.StatusBadRequest:
+		t.Errorf("Bad request: Invalid parameters!")
+	case http.StatusInternalServerError:
+		t.Errorf("Internal Server error!")
+	case http.StatusOK:
+		t.Errorf("Logs not found!")
 	}
-	if status == http.StatusInternalServerError {
-		t.Error("Internal Server error!")
-	}
-	if !(status == http.StatusOK && pageOK) {
+	if !pageOK {
 		t.Error("Logs not found!")
 	}
 }
@@ -91,13 +93,15 @@ func TestFilterLogsByPodName(t *testing.T) {
 	p, err := ioutil.ReadAll(w.Body)
 	pageOK := err == nil && strings.Index(string(p), "Logs") > 0
 
-	if status == http.StatusBadRequest {
-		t.Error("Bad request: Invalid podname!")
+	switch status {
+	case http.StatusBadRequest:
+		t.Errorf("Bad request: Invalid podname!")
+	case http.StatusInternalServerError:
+		t.Errorf("Internal Server error!")
+	case http.StatusOK:
+		t.Errorf("Logs not found!")
 	}
-	if status == http.StatusInternalServerError {
-		t.Error("Internal Server error!")
-	}
-	if !(status == http.StatusOK && pageOK) {
+	if !pageOK {
 		t.Error("Logs not found!")
 	}
 }
@@ -109,13 +113,15 @@ func TestFilterMultipleParameters(t *testing.T) {
 	p, err := ioutil.ReadAll(w.Body)
 	pageOK := err == nil && strings.Index(string(p), "Logs") > 0
 
-	if status == http.StatusBadRequest {
-		t.Error("Bad request: Invalid parameter values/format!")
+	switch status {
+	case http.StatusBadRequest:
+		t.Errorf("Bad request: Invalid parameter values/format!")
+	case http.StatusInternalServerError:
+		t.Errorf("Internal Server error!")
+	case http.StatusOK:
+		t.Errorf("Logs not found!")
 	}
-	if status == http.StatusInternalServerError {
-		t.Error("Internal Server error!")
-	}
-	if !(status == http.StatusOK && pageOK) {
+	if !pageOK {
 		t.Error("Logs not found!")
 	}
 }
