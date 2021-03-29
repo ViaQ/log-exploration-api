@@ -179,6 +179,6 @@ func (controller *LogsController) FilterLogsMultipleParameters(gctx *gin.Context
 		return
 	}
 	gctx.JSON(http.StatusOK, gin.H{
-		"Logs ": logsList, //return logs
+		"Logs": logsList, //return logs
 	})
 }

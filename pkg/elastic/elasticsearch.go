@@ -95,8 +95,8 @@ func (repository *ElasticRepository) FilterByTime(startTime time.Time, finishTim
 	var logsList []string // create a slice of type string to append logs to
 
 	//splitting date-time and timezone to populate the query
-	start := strings.Split(startTime.String(), " ")[0] //format- YYYY-MM-DDTHH:MM:SS
-	finish := strings.Split(finishTime.String(), " ")[0]
+	start := strings.Split(startTime.String(), " ")[0]+"T"+strings.Split(startTime.String(), " ")[1] //format- YYYY-MM-DDTHH:MM:SS
+	finish := strings.Split(finishTime.String(), " ")[0]+"T"+strings.Split(finishTime.String(), " ")[1]
 	timezone := strings.Split(startTime.String(), " ")[2] //format- +0000
 	esClient := repository.esClient
 	query := fmt.Sprintf(`{"query":{"range":{"@timestamp":{"gte":"%s","lte":"%s","time_zone":"%s"}}}}`,
@@ -213,8 +213,8 @@ func (repository *ElasticRepository) FilterLogsMultipleParameters(podName string
 
 	esClient := repository.esClient
 
-	start := strings.Split(startTime.String(), " ")[0] //format- YYYY-MM-DDTHH:MM:SS
-	finish := strings.Split(finishTime.String(), " ")[0]
+	start := strings.Split(startTime.String(), " ")[0]+"T"+strings.Split(startTime.String(), " ")[1] //format- YYYY-MM-DDTHH:MM:SS
+	finish := strings.Split(finishTime.String(), " ")[0]+"T"+strings.Split(finishTime.String(), " ")[1]
 	timezone := strings.Split(startTime.String(), " ")[2] //format- +0000
 
 	query := fmt.Sprintf(`{
