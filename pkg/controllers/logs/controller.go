@@ -15,13 +15,13 @@ type LogsController struct {
 	log          *zap.Logger
 }
 
+
 func NewLogsController(log *zap.Logger, logsProvider logs.LogsProvider, router *gin.Engine) *LogsController {
 	controller := &LogsController{
 		log:          log,
 		logsProvider: logsProvider,
 	}
 	r := router.Group("logs")
-
 	r.GET("/", controller.GetAllLogs)
 	//please enter time in the following format YYYY-MM-DDTHH:MM:SS[TIMEZONE - +00:00]
 	r.GET("timefilter/:startTime/:finishTime", controller.FilterLogsByTime)
@@ -106,8 +106,7 @@ func (controller *LogsController) FilterLogsByTime(gctx *gin.Context) {
 
 	start := gctx.Params.ByName("startTime")
 	finish := gctx.Params.ByName("finishTime")
-
-	startTime, err := time.Parse(time.RFC3339, start)
+	startTime, err := time.Parse(time.RFC3339Nano, start)
 	if err != nil {
 		gctx.JSON(http.StatusBadRequest, gin.H{
 			"Error": "Incorrect format: Please Enter Start Time in the following format YYYY-MM-DDTHH:MM:SS[TIMEZONE ex:+00:00]",
@@ -115,7 +114,7 @@ func (controller *LogsController) FilterLogsByTime(gctx *gin.Context) {
 		fmt.Println(err)
 		return
 	}
-	finishTime, err := time.Parse(time.RFC3339, finish)
+	finishTime, err := time.Parse(time.RFC3339Nano, finish)
 	if err != nil {
 		gctx.JSON(http.StatusBadRequest,
 			gin.H{"Error": "Incorrect format: Please Finish Start Time in the following format YYYY-MM-DDTHH:MM:SS[TIMEZONE ex:+00:00]"})
@@ -148,7 +147,7 @@ func (controller *LogsController) FilterLogsMultipleParameters(gctx *gin.Context
 	starttime := gctx.Params.ByName("starttime")
 	finishtime := gctx.Params.ByName("finishtime")
 
-	startTime, err := time.Parse(time.RFC3339, starttime)
+	startTime, err := time.Parse(time.RFC3339Nano, starttime)
 	if err != nil {
 		gctx.JSON(http.StatusBadRequest, gin.H{
 			"Error": "Incorrect format: Please Enter Start Time in the following format YYYY-MM-DDTHH:MM:SS[TIMEZONE ex:+00:00]",
@@ -156,7 +155,7 @@ func (controller *LogsController) FilterLogsMultipleParameters(gctx *gin.Context
 		fmt.Println(err)
 		return
 	}
-	finishTime, err := time.Parse(time.RFC3339, finishtime)
+	finishTime, err := time.Parse(time.RFC3339Nano, finishtime)
 	if err != nil {
 		gctx.JSON(http.StatusBadRequest,
 			gin.H{"Error": "Incorrect format: Please Finish Start Time in the following format YYYY-MM-DDTHH:MM:SS[TIMEZONE ex:+00:00]"})
