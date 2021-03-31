@@ -15,7 +15,6 @@ type LogsController struct {
 	log          *zap.Logger
 }
 
-
 func NewLogsController(log *zap.Logger, logsProvider logs.LogsProvider, router *gin.Engine) *LogsController {
 	controller := &LogsController{
 		log:          log,

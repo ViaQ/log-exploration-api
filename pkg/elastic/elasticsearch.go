@@ -269,7 +269,7 @@ func getRelevantLogs(result map[string]interface{}) []string {
 	// iterate through the logs and add them to a slice
 	var logsList []string
 	for _, hit := range result["hits"].(map[string]interface{})["hits"].([]interface{}) {
-		log, _ := json.Marshal(hit)  //to return logs in JSON
+		log, _ := json.Marshal(hit) //to return logs in JSON
 
 		logsList = append(logsList, string(log))
 	}
