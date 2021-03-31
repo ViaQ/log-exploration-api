@@ -93,14 +93,11 @@ func (repository *ElasticRepository) FilterByIndex(index string) ([]string, erro
 func (repository *ElasticRepository) FilterByTime(startTime time.Time, finishTime time.Time) ([]string, error) {
 
 	var logsList []string // create a slice of type string to append logs to
-
-	//splitting date-time and timezone to populate the query
-	start := strings.Split(startTime.String(), " ")[0] //format- YYYY-MM-DDTHH:MM:SS
-	finish := strings.Split(finishTime.String(), " ")[0]
-	timezone := strings.Split(startTime.String(), " ")[2] //format- +0000
 	esClient := repository.esClient
-	query := fmt.Sprintf(`{"query":{"range":{"@timestamp":{"gte":"%s","lte":"%s","time_zone":"%s"}}}}`,
-		start, finish, timezone)
+	start := startTime.UTC().Format(time.RFC3339Nano)
+	finish := finishTime.UTC().Format(time.RFC3339Nano)
+	query := fmt.Sprintf(`{"query":{"range":{"@timestamp":{"gte":"%s","lte":"%s"}}}}`,
+		start, finish)
 
 	var b strings.Builder
 	b.WriteString(query)
@@ -212,10 +209,8 @@ func (repository *ElasticRepository) FilterLogsMultipleParameters(podName string
 	var logsList []string // create a slice of type string to append logs to
 
 	esClient := repository.esClient
-
-	start := strings.Split(startTime.String(), " ")[0] //format- YYYY-MM-DDTHH:MM:SS
-	finish := strings.Split(finishTime.String(), " ")[0]
-	timezone := strings.Split(startTime.String(), " ")[2] //format- +0000
+	start := startTime.UTC().Format(time.RFC3339Nano)
+	finish := finishTime.UTC().Format(time.RFC3339Nano)
 
 	query := fmt.Sprintf(`{
 "query": {
@@ -226,8 +221,7 @@ func (repository *ElasticRepository) FilterLogsMultipleParameters(podName string
 				{"range" : {
 					"@timestamp" : {
 						"gte": "%s",
-						"lte": "%s",
-						"time_zone":"%s"
+						"lte": "%s"
 				}
 			}}
 
@@ -236,7 +230,7 @@ func (repository *ElasticRepository) FilterLogsMultipleParameters(podName string
 
 		}
 	}
-}`, namespace, podName, start, finish, timezone)
+}`, namespace, podName, start, finish)
 
 	var b strings.Builder
 	b.WriteString(query)
@@ -275,8 +269,9 @@ func getRelevantLogs(result map[string]interface{}) []string {
 	// iterate through the logs and add them to a slice
 	var logsList []string
 	for _, hit := range result["hits"].(map[string]interface{})["hits"].([]interface{}) {
-		log := fmt.Sprintf("%v", hit)
-		logsList = append(logsList, log)
+		log, _ := json.Marshal(hit) //to return logs in JSON
+
+		logsList = append(logsList, string(log))
 	}
 
 	if len(logsList) == 0 {
