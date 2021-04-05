@@ -100,7 +100,6 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 	numParametersStr := strconv.Itoa(numParameters)
 	query = query + "],"
 	query = query + fmt.Sprintf(`"minimum_should_match":"%s"}},"size":"1000"}`, numParametersStr)
-	fmt.Println(query)
 
 	var b strings.Builder
 	b.WriteString(query)
@@ -267,8 +266,7 @@ func (repository *ElasticRepository) GetAllLogs() ([]string, error) {
 	esClient := repository.esClient
 
 	query := fmt.Sprintf(`{"size":"1000"}`)
-	//query:= "{\"size\":\"1000\"}"
-	//query = fmt.Sprintf(`%s`,query)
+
 
 	var b strings.Builder
 	b.WriteString(query)
@@ -358,7 +356,6 @@ func (repository *ElasticRepository) FilterLogsMultipleParameters(podName string
 	}
 
 	logsList = getRelevantLogs(result)
-	fmt.Println()
 	return logsList, nil
 
 }
