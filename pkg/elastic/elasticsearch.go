@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -56,11 +57,101 @@ func NewElasticRepository(log *zap.Logger, config *configuration.ElasticsearchCo
 	return repository, nil
 }
 
+func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]string, error) {
+
+	numParameters := 0
+	query := fmt.Sprintf(`{
+	"query": {
+	"bool": {
+		"should": [ `)
+	if len(params.Namespace) > 0 {
+		query = query + fmt.Sprintf(`{"term" : {"kubernetes.namespace_name" : "%s"}}`, params.Namespace)
+		numParameters = numParameters + 1
+	}
+	if len(params.Podname) > 0 {
+		if numParameters > 0 {
+			query = query + "," //Add a comma to the query if this condition is not the first condition in the query
+		}
+		query = query + fmt.Sprintf(`{"term" : {"kubernetes.pod_name" : "%s"}}`, params.Podname)
+		numParameters = numParameters + 1
+	}
+	if len(params.Index) > 0 {
+		if numParameters > 0 {
+			query = query + ","
+		}
+		query = query + fmt.Sprintf(`{"term" : {"_index" : "%s"}}`, params.Index)
+		numParameters = numParameters + 1
+	}
+	if len(params.StartTime) > 0 && len(params.FinishTime) > 0 {
+		if numParameters > 0 {
+			query = query + ","
+		}
+		query = query + fmt.Sprintf(`{"range" : {"@timestamp" : {"gte": "%s","lte": "%s"}}}`, params.StartTime, params.FinishTime)
+		numParameters = numParameters + 1
+	}
+	if len(params.Level) > 0 {
+		if numParameters > 0 {
+			query = query + ","
+		}
+		query = query + fmt.Sprintf(`{"term" : {"level" : "%s"}}`, params.Level)
+		numParameters = numParameters + 1
+	}
+
+	numParametersStr := strconv.Itoa(numParameters)
+	query = query + "],"
+	query = query + fmt.Sprintf(`"minimum_should_match":"%s"}},"size":"1000"}`, numParametersStr)
+	fmt.Println(query)
+
+	var b strings.Builder
+	b.WriteString(query)
+	body := strings.NewReader(b.String())
+	esClient := repository.esClient
+
+	searchResult, err := esClient.Search(
+		esClient.Search.WithContext(context.Background()),
+		esClient.Search.WithBody(body),
+		esClient.Search.WithTrackTotalHits(true),
+		esClient.Search.WithPretty(),
+	)
+
+	var logsList []string // create a slice of type string to append logs to
+
+	if err != nil {
+		repository.log.Error("failed exec ES query", zap.Error(err))
+		return logsList, getError(err)
+	}
+
+	var result map[string]interface{}
+
+	err = json.NewDecoder(searchResult.Body).Decode(&result) //convert searchresult to map[string]interface{}
+	if err != nil {
+		repository.log.Error("Error occurred while decoding JSON", zap.Error(err))
+		return logsList, err
+	}
+
+	if _, ok := result["hits"]; !ok {
+		repository.log.Error("An error occurred while fetching logs", zap.Any("result", result))
+		return logsList, logs.NotFoundError()
+	}
+
+	logsList = getRelevantLogs(result)
+
+	return logsList, nil
+}
+
 func (repository *ElasticRepository) FilterByIndex(index string) ([]string, error) {
 	esClient := repository.esClient
+
+	query := fmt.Sprintf(`{"size":"1000"}`)
+
+	var b strings.Builder
+	b.WriteString(query)
+	body := strings.NewReader(b.String())
+
 	searchResult, err := esClient.Search(
 		esClient.Search.WithContext(context.Background()),
 		esClient.Search.WithIndex(index),
+		esClient.Search.WithBody(body),
 		esClient.Search.WithTrackTotalHits(true),
 		esClient.Search.WithPretty(),
 	)
@@ -96,7 +187,7 @@ func (repository *ElasticRepository) FilterByTime(startTime time.Time, finishTim
 	esClient := repository.esClient
 	start := startTime.UTC().Format(time.RFC3339Nano)
 	finish := finishTime.UTC().Format(time.RFC3339Nano)
-	query := fmt.Sprintf(`{"query":{"range":{"@timestamp":{"gte":"%s","lte":"%s"}}}}`,
+	query := fmt.Sprintf(`{"query":{"range":{"@timestamp":{"gte":"%s","lte":"%s"}}},"size":"1000"}`,
 		start, finish)
 
 	var b strings.Builder
@@ -138,7 +229,7 @@ func (repository *ElasticRepository) FilterByPodName(podName string) ([]string, 
 
 	esClient := repository.esClient
 
-	query := fmt.Sprintf(`{"query":{"match":{"kubernetes.pod_name":{"query":"%s"}}}}`, podName)
+	query := fmt.Sprintf(`{"query":{"match":{"kubernetes.pod_name":{"query":"%s"}}},"size":"1000"}`, podName)
 	var b strings.Builder
 	b.WriteString(query)
 	body := strings.NewReader(b.String())
@@ -174,8 +265,17 @@ func (repository *ElasticRepository) FilterByPodName(podName string) ([]string, 
 
 func (repository *ElasticRepository) GetAllLogs() ([]string, error) {
 	esClient := repository.esClient
+
+	query := fmt.Sprintf(`{"size":"1000"}`)
+	//query:= "{\"size\":\"1000\"}"
+	//query = fmt.Sprintf(`%s`,query)
+
+	var b strings.Builder
+	b.WriteString(query)
+	body := strings.NewReader(b.String())
 	searchResult, err := esClient.Search(
 		esClient.Search.WithContext(context.Background()),
+		esClient.Search.WithBody(body),
 		esClient.Search.WithIndex(constants.InfraIndexName, constants.AuditIndexName, constants.AppIndexName),
 		esClient.Search.WithTrackTotalHits(true),
 		esClient.Search.WithPretty(),
@@ -224,12 +324,10 @@ func (repository *ElasticRepository) FilterLogsMultipleParameters(podName string
 						"lte": "%s"
 				}
 			}}
-
 			],
 	"minimum_should_match" : 3
-
 		}
-	}
+	},"size":"1000"
 }`, namespace, podName, start, finish)
 
 	var b strings.Builder
@@ -260,7 +358,7 @@ func (repository *ElasticRepository) FilterLogsMultipleParameters(podName string
 	}
 
 	logsList = getRelevantLogs(result)
-
+	fmt.Println()
 	return logsList, nil
 
 }
