@@ -5,3 +5,6 @@ node_modules
 package*.json
 admin-cert
 admin-key
+coverage.out
+tags
+coverage.html

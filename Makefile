@@ -13,7 +13,10 @@ build: test
 	CGO_ENABLED=0 GOOS=linux go build -ldflags "${LDFLAGS}" -o $(BUILD_DIR)/$(EXECUTABLE) cmd/apiserver/main.go
 
 test:
-	go test ./...
+	go test ./pkg/... -cover
+
+test-cover:
+	go test ./pkg/... -coverprofile=coverage.out && go tool cover -html=coverage.out
 
 clean:
 	rm -rf $(BUILD_DIR)/
@@ -31,3 +34,4 @@ test-e2e:
 	test/e2e/populate_indices.sh
 	go test -v test/e2e/*.go
 	docker-compose down -v
+
