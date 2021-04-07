@@ -121,6 +121,10 @@ func (m *MockedElasticsearchProvider) FilterByPodName(podName string) ([]string,
 			result = append(result, v...)
 		}
 	}
+	if len(result) == 0 {
+		return nil, logs.NotFoundError()
+	}
+
 	return result, nil
 }
 

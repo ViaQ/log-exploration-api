@@ -126,7 +126,7 @@ func (controller *LogsController) FilterLogsByTime(gctx *gin.Context) {
 	if err != nil {
 		if err.Error() == logs.NotFoundError().Error() {
 			gctx.JSON(http.StatusBadRequest, gin.H{
-				"Please Enter a Valid timeStamp ": err,
+				"No logs found, please enter another timeStamp ": err,
 			})
 			return
 		}

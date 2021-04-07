@@ -243,6 +243,12 @@ func Test_FilterLogsByPodName(t *testing.T) {
 			false,
 			[]string{"test-log-1 test-log-1 pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal"},
 		},
+		{
+			"Invalid Podname",
+			"audit",
+			false,
+			[]string{"test-log-1 test-log-1 pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal"},
+		},
 	}
 
 	provider := elastic.NewMockedElastisearchProvider()
@@ -256,21 +262,44 @@ func Test_FilterLogsByPodName(t *testing.T) {
 		provider.PutDataIntoIndex(tt.Index, tt.TestData)
 
 		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/logs/podnamefilter/openshift-kube-scheduler-ip-10-0-157-165.ec2.internal", nil)
-		if err != nil {
-			t.Errorf("Failed to create HTTP request. E: %v", err)
-		}
-		router.ServeHTTP(rr, req)
-		resp := rr.Body.String()
 
-		expected, err := json.Marshal(map[string]interface{}{"Logs": tt.TestData})
-		if err != nil {
-			t.Errorf("failed to marshal test data. E: %v", err)
+		var resp, expectedResp string
+		var status, expectedStatus int
+		if  tt.TestName == "Filter by Podname" {
+			req, err := http.NewRequest(http.MethodGet, "/logs/podnamefilter/openshift-kube-scheduler-ip-10-0-157-165.ec2.internal", nil)
+			if err != nil {
+				t.Errorf("Failed to create HTTP request. E: %v", err)
+			}
+			router.ServeHTTP(rr, req)
+			resp = rr.Body.String()
+			status = rr.Code
+			expected, err := json.Marshal(map[string]interface{}{"Logs": tt.TestData})
+			if err != nil {
+				t.Errorf("failed to marshal test data. E: %v", err)
+			}
+			expectedResp = string(expected)	
+			expectedStatus = http.StatusOK
+		} else {
+			req, err := http.NewRequest(http.MethodGet, "/logs/podnamefilter/hello", nil)
+			if err != nil {
+				t.Errorf("Failed to create HTTP request. E: %v", err)
+			}
+			router.ServeHTTP(rr, req)
+			resp = rr.Body.String()
+			status = rr.Code
+			expected, err := json.Marshal(map[string]interface{}{"Invalid Podname Entered ": fmt.Errorf("No logs found!")})
+			if err != nil {
+				t.Errorf("failed to marshal test data. E: %v", err)
+			}
+			expectedResp = string(expected)
+			expectedStatus = http.StatusBadRequest
 		}
-		expectedResp := string(expected)
 
 		if resp != expectedResp {
 			t.Errorf("expected response to be %s, got %s", expectedResp, resp)
+		}
+		if status != expectedStatus {
+			t.Errorf("expected response to be %v, got %v", expectedStatus, status)
 		}
 	}
 
