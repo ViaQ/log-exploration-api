@@ -39,9 +39,20 @@ func (m *MockedElasticsearchProvider) PutDataIntoIndex(index string, data []stri
 	}
 }
 
-func (m *MockedElasticsearchProvider) PutDataAtTime(logTime time.Time, data []string) error {
-	m.Infra[logTime] = data
-	return nil
+func (m *MockedElasticsearchProvider) PutDataAtTime(logTime time.Time, index string, data []string) error {
+	switch strings.ToLower(index) {
+	case "app":
+		m.App[logTime] = data
+		return nil
+	case "infra":
+		m.Infra[logTime] = data
+		return nil
+	case "audit":
+		m.Audit[logTime] = data
+		return nil
+	default:
+		return errors.New("unknown index")
+	}
 }
 
 func (m *MockedElasticsearchProvider) FilterByIndex(index string) ([]string, error) {

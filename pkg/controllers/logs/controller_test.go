@@ -75,7 +75,7 @@ func Test_ControllerFilterByIndex(t *testing.T) {
 			expected, err = json.Marshal(map[string]interface{}{"Invalid Index Entered ": fmt.Errorf("Not Found Error")})
 			expectedStatus = http.StatusBadRequest
 		}
-		
+
 		expectedResp := string(expected)
 		if resp != expectedResp {
 			t.Errorf("expected response to be %s, got %s", expectedResp, resp)
@@ -94,6 +94,12 @@ func Test_ControllerGetAllLogs(t *testing.T) {
 		ShouldFail bool
 		TestData   []string
 	}{
+		{
+			"No logs",
+			"app",
+			false,
+			nil,
+		},
 		{
 			"Get all logs",
 			"infra",
@@ -119,20 +125,29 @@ func Test_ControllerGetAllLogs(t *testing.T) {
 		}
 		router.ServeHTTP(rr, req)
 		resp := rr.Body.String()
+		status := rr.Code
 
 		expected, err := json.Marshal(map[string]interface{}{"Logs": tt.TestData})
 		if err != nil {
 			t.Errorf("failed to marshal test data. E: %v", err)
+		}
+		expectedStatus := http.StatusOK
+
+		if tt.TestName == "No logs" {
+			expected, err = json.Marshal(map[string]interface{}{"An Error Occurred ": fmt.Errorf("No logs found!")})
+			expectedStatus = http.StatusBadRequest
 		}
 		expectedResp := string(expected)
 
 		if resp != expectedResp {
 			t.Errorf("expected response to be %s, got %s", expectedResp, resp)
 		}
+		if status != expectedStatus {
+			t.Errorf("expected response to be %v, got %v", expectedStatus, status)
+		}
 	}
 
 }
-
 
 func Test_ControllerFilterByTime(t *testing.T) {
 	tests := []struct {
@@ -142,8 +157,20 @@ func Test_ControllerFilterByTime(t *testing.T) {
 		TestData   []string
 	}{
 		{
+			"No logs in given interval",
+			"app",
+			false,
+			nil,
+		},
+		{
 			"Filter by time",
 			"infra",
+			false,
+			[]string{"test-log-1", "test-log-2", "test-log-3"},
+		},
+		{
+			"Invalid parameters",
+			"audit",
 			false,
 			[]string{"test-log-1", "test-log-2", "test-log-3"},
 		},
@@ -157,8 +184,8 @@ func Test_ControllerFilterByTime(t *testing.T) {
 	for _, tt := range tests {
 		t.Log("Running:", tt.TestName)
 
-		logTime,_ := time.Parse(time.RFC3339Nano, "2021-03-17T14:22:40+05:30")
-		provider.PutDataAtTime(logTime, tt.TestData)
+		logTime, _ := time.Parse(time.RFC3339Nano, "2021-03-17T14:22:40+05:30")
+		provider.PutDataAtTime(logTime, tt.Index, tt.TestData)
 
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodGet, "/logs/timefilter/2021-03-17T14:22:20+05:30/2021-03-17T14:23:20+05:30", nil)
@@ -167,15 +194,37 @@ func Test_ControllerFilterByTime(t *testing.T) {
 		}
 		router.ServeHTTP(rr, req)
 		resp := rr.Body.String()
+		status := rr.Code
 
 		expected, err := json.Marshal(map[string]interface{}{"Logs": tt.TestData})
 		if err != nil {
 			t.Errorf("failed to marshal test data. E: %v", err)
 		}
+		expectedStatus := http.StatusOK
+
+		if tt.TestName == "No logs in given interval" {
+			expected, err = json.Marshal(map[string]interface{}{"No logs found, please enter another timeStamp ": fmt.Errorf("No logs found!")})
+			expectedStatus = http.StatusBadRequest
+		}
+		if tt.TestName == "Invalid parameters" {
+			rr = httptest.NewRecorder()
+			req, err = http.NewRequest(http.MethodGet, "/logs/timefilter/2021/hello", nil)
+			if err != nil {
+				t.Errorf("Failed to create HTTP request. E: %v", err)
+			}
+			router.ServeHTTP(rr, req)
+			resp = rr.Body.String()
+			status = rr.Code
+			expected, err = json.Marshal(map[string]interface{}{"Error": fmt.Errorf("Incorrect format: Please Enter Start Time in the following format YYYY-MM-DDTHH:MM:SS[TIMEZONE ex:+00:00]").Error()})
+			expectedStatus = http.StatusBadRequest
+		}
 		expectedResp := string(expected)
 
 		if resp != expectedResp {
 			t.Errorf("expected response to be %s, got %s", expectedResp, resp)
+		}
+		if status != expectedStatus {
+			t.Errorf("expected response to be %v, got %v", expectedStatus, status)
 		}
 	}
 
@@ -249,8 +298,8 @@ func Test_FilterLogsMultipleParameters(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Log("Running:", tt.TestName)
-		logTime,_ := time.Parse(time.RFC3339Nano, "2021-03-17T14:22:40+05:30")
-		provider.PutDataAtTime(logTime, tt.TestData)
+		logTime, _ := time.Parse(time.RFC3339Nano, "2021-03-17T14:22:40+05:30")
+		provider.PutDataAtTime(logTime, tt.Index, tt.TestData)
 
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodGet, "/logs/multifilter/openshift-kube-scheduler/openshift-kube-scheduler-ip-10-0-157-165.ec2.internal/2021-03-17T14:22:20+05:30/2021-03-17T14:23:20+05:30", nil)
