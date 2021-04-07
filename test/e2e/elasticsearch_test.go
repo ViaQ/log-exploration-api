@@ -33,7 +33,7 @@ func TestGetAllLogs(t *testing.T) {
 		t.Error("Failed to fetch the logs!")
 	}
 	if !((strings.Contains(logList[0], "index") &&
-		 strings.Contains(logList[0], "container-runtime-endpoint") && 
+		 strings.Contains(logList[0], "container_name") && 
 		 strings.Contains(logList[0], "pod")) ||
 	     strings.Contains(logList[0], "No logs")) {
 		t.Error("Logs not found!")
