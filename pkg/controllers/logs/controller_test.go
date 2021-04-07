@@ -2,6 +2,7 @@ package logscontroller
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -18,12 +19,35 @@ func Test_ControllerFilterByIndex(t *testing.T) {
 		Index      string
 		ShouldFail bool
 		TestData   []string
+		Error	   error
 	}{
 		{
 			"Filter by App index",
 			"app",
 			false,
 			[]string{"test-log-1", "test-log-2", "test-log-3"},
+			nil,
+		},
+		{
+			"Filter by Infra index",
+			"infra",
+			false,
+			[]string{"test-log-1", "test-log-2", "test-log-3"},
+			nil,
+		},
+		{
+			"Filter by Audit index",
+			"audit",
+			false,
+			[]string{"test-log-1", "test-log-2", "test-log-3"},
+			nil,
+		},
+		{
+			"Filter by Invalid index",
+			"api",
+			false,
+			[]string{},
+			fmt.Errorf("Not Found Error"),
 		},
 	}
 
@@ -38,21 +62,31 @@ func Test_ControllerFilterByIndex(t *testing.T) {
 		provider.PutDataIntoIndex(tt.Index, tt.TestData)
 
 		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/logs/indexfilter/app", nil)
+		req, err := http.NewRequest(http.MethodGet, "/logs/indexfilter/"+tt.Index, nil)
 		if err != nil {
 			t.Errorf("Failed to create HTTP request. E: %v", err)
 		}
 		router.ServeHTTP(rr, req)
 		resp := rr.Body.String()
+		status := rr.Code
 
 		expected, err := json.Marshal(map[string]interface{}{"Logs": tt.TestData})
+		expectedStatus := http.StatusOK
 		if err != nil {
 			t.Errorf("failed to marshal test data. E: %v", err)
 		}
-		expectedResp := string(expected)
 
+		if !(tt.Index == "app" || tt.Index == "infra" || tt.Index == "audit") {
+			expected, err = json.Marshal(map[string]interface{}{"Invalid Index Entered ": tt.Error})
+			expectedStatus = http.StatusBadRequest
+		}
+		
+		expectedResp := string(expected)
 		if resp != expectedResp {
 			t.Errorf("expected response to be %s, got %s", expectedResp, resp)
+		}
+		if status != expectedStatus {
+			t.Errorf("expected status code: %v found: %v", expectedStatus, status)
 		}
 	}
 

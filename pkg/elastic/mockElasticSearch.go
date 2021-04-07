@@ -32,7 +32,7 @@ func (m *MockedElasticsearchProvider) PutDataIntoIndex(index string, data []stri
 		m.Infra[time.Now()] = data
 		return nil
 	case "audit":
-		m.Infra[time.Now()] = data
+		m.Audit[time.Now()] = data
 		return nil
 	default:
 		return errors.New("unknown index")
