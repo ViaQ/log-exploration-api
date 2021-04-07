@@ -77,8 +77,23 @@ func (m *MockedElasticsearchProvider) FilterByIndex(index string) ([]string, err
 }
 
 func (m *MockedElasticsearchProvider) FilterByTime(startTime time.Time, finishTime time.Time) ([]string, error) {
-	var lg map[time.Time][]string
-	lg = m.Infra
+	lg := make(map[time.Time][]string)
+	for k, v := range m.App {
+		if v != nil {
+			lg[k] = v
+		}
+	}
+	for k, v := range m.Infra {
+		if v != nil {
+			lg[k] = v
+		}
+	}
+	for k, v := range m.Audit {
+		if v != nil {
+			lg[k] = v
+		}
+	}
+
 	if len(lg) == 0 {
 		return nil, logs.NotFoundError()
 	}
@@ -93,9 +108,23 @@ func (m *MockedElasticsearchProvider) FilterByTime(startTime time.Time, finishTi
 }
 
 func (m *MockedElasticsearchProvider) GetAllLogs() ([]string, error) {
-	var lg map[time.Time][]string
-	lg = m.Infra
-	
+	lg := make(map[time.Time][]string)
+	for k, v := range m.App {
+		if v != nil {
+			lg[k] = v
+		}
+	}
+	for k, v := range m.Infra {
+		if v != nil {
+			lg[k] = v
+		}
+	}
+	for k, v := range m.Audit {
+		if v != nil {
+			lg[k] = v
+		}
+	}
+
 	if len(lg) == 0 {
 		return nil, logs.NotFoundError()
 	}
@@ -104,13 +133,28 @@ func (m *MockedElasticsearchProvider) GetAllLogs() ([]string, error) {
 	for _, v := range lg {
 		result = append(result, v...)
 	}
+
 	return result, nil
 }
 
 func (m *MockedElasticsearchProvider) FilterByPodName(podName string) ([]string, error) {
-	var lg map[time.Time][]string
-	lg = m.Infra
-	
+	lg := make(map[time.Time][]string)
+	for k, v := range m.App {
+		if v != nil {
+			lg[k] = v
+		}
+	}
+	for k, v := range m.Infra {
+		if v != nil {
+			lg[k] = v
+		}
+	}
+	for k, v := range m.Audit {
+		if v != nil {
+			lg[k] = v
+		}
+	}
+
 	if len(lg) == 0 {
 		return nil, logs.NotFoundError()
 	}
@@ -129,21 +173,42 @@ func (m *MockedElasticsearchProvider) FilterByPodName(podName string) ([]string,
 }
 
 func (m *MockedElasticsearchProvider) FilterLogsMultipleParameters(podName string, namespace string, startTime time.Time, finishTime time.Time) ([]string, error) {
-	var lg map[time.Time][]string
-	lg = m.Infra
-	
+	lg := make(map[time.Time][]string)
+	for k, v := range m.App {
+		if v != nil {
+			lg[k] = v
+		}
+	}
+	for k, v := range m.Infra {
+		if v != nil {
+			lg[k] = v
+		}
+	}
+	for k, v := range m.Audit {
+		if v != nil {
+			lg[k] = v
+		}
+	}
+
 	if len(lg) == 0 {
 		return nil, logs.NotFoundError()
 	}
 
 	result := []string{}
 	for k, v := range lg {
-		fmt.Print(v[0])
+		pod := "pod_name: " + podName
+		ns := "namespace_name: " + namespace
+		fmt.Print(pod, ns)
 		if k.After(startTime) && k.Before(finishTime) &&
-		 strings.Contains(v[0], "pod_name: ") &&
-		 strings.Contains(v[0], "namespace_name: ") {
+			strings.Contains(v[0], pod) &&
+			strings.Contains(v[0], ns) {
 			result = append(result, v...)
 		}
 	}
+
+	if len(result) == 0 {
+		return nil, logs.NotFoundError()
+	}
+
 	return result, nil
 }

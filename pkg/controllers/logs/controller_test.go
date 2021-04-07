@@ -265,7 +265,7 @@ func Test_FilterLogsByPodName(t *testing.T) {
 
 		var resp, expectedResp string
 		var status, expectedStatus int
-		if  tt.TestName == "Filter by Podname" {
+		if tt.TestName == "Filter by Podname" {
 			req, err := http.NewRequest(http.MethodGet, "/logs/podnamefilter/openshift-kube-scheduler-ip-10-0-157-165.ec2.internal", nil)
 			if err != nil {
 				t.Errorf("Failed to create HTTP request. E: %v", err)
@@ -277,7 +277,7 @@ func Test_FilterLogsByPodName(t *testing.T) {
 			if err != nil {
 				t.Errorf("failed to marshal test data. E: %v", err)
 			}
-			expectedResp = string(expected)	
+			expectedResp = string(expected)
 			expectedStatus = http.StatusOK
 		} else {
 			req, err := http.NewRequest(http.MethodGet, "/logs/podnamefilter/hello", nil)
@@ -314,7 +314,25 @@ func Test_FilterLogsMultipleParameters(t *testing.T) {
 	}{
 		{
 			"Filter by multiple parameters",
+			"app",
+			false,
+			[]string{"test-log-1 pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler"},
+		},
+		{
+			"Invalid parameters",
 			"infra",
+			false,
+			[]string{"test-log-1 pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler"},
+		},
+		{
+			"Invalid timestamp",
+			"audit",
+			false,
+			[]string{"test-log-1 pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler"},
+		},
+		{
+			"No logs in given time interval",
+			"app",
 			false,
 			[]string{"test-log-1 pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler"},
 		},
@@ -330,22 +348,75 @@ func Test_FilterLogsMultipleParameters(t *testing.T) {
 		logTime, _ := time.Parse(time.RFC3339Nano, "2021-03-17T14:22:40+05:30")
 		provider.PutDataAtTime(logTime, tt.Index, tt.TestData)
 
-		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/logs/multifilter/openshift-kube-scheduler/openshift-kube-scheduler-ip-10-0-157-165.ec2.internal/2021-03-17T14:22:20+05:30/2021-03-17T14:23:20+05:30", nil)
-		if err != nil {
-			t.Errorf("Failed to create HTTP request. E: %v", err)
-		}
-		router.ServeHTTP(rr, req)
-		resp := rr.Body.String()
+		var resp string
+		var expected []byte
+		var status, expectedStatus int
 
-		expected, err := json.Marshal(map[string]interface{}{"Logs": tt.TestData})
-		if err != nil {
-			t.Errorf("failed to marshal test data. E: %v", err)
+		switch tt.TestName {
+		case "Filter by multiple parameters":
+			rr := httptest.NewRecorder()
+			req, err := http.NewRequest(http.MethodGet, "/logs/multifilter/openshift-kube-scheduler-ip-10-0-157-165.ec2.internal/openshift-kube-scheduler/2021-03-17T14:22:20+05:30/2021-03-17T14:23:20+05:30", nil)
+			if err != nil {
+				t.Errorf("Failed to create HTTP request. E: %v", err)
+			}
+			router.ServeHTTP(rr, req)
+			resp = rr.Body.String()
+			status = rr.Code
+			expected, err = json.Marshal(map[string]interface{}{"Logs": tt.TestData})
+			if err != nil {
+				t.Errorf("failed to marshal test data. E: %v", err)
+			}
+			expectedStatus = http.StatusOK
+		case "Invalid parameters":
+			rr := httptest.NewRecorder()
+			req, err := http.NewRequest(http.MethodGet, "/logs/multifilter/hello/world/2021-03-17T14:22:20+05:30/2021-03-17T14:23:20+05:30", nil)
+			if err != nil {
+				t.Errorf("Failed to create HTTP request. E: %v", err)
+			}
+			router.ServeHTTP(rr, req)
+			resp = rr.Body.String()
+			status = rr.Code
+			expected, err = json.Marshal(map[string]interface{}{"Please Check Entered Parameters": fmt.Errorf("No logs found!")})
+			if err != nil {
+				t.Errorf("failed to marshal test data. E: %v", err)
+			}
+			expectedStatus = http.StatusBadRequest
+		case "Invalid timestamp":
+			rr := httptest.NewRecorder()
+			req, err := http.NewRequest(http.MethodGet, "/logs/multifilter/openshift-kube-scheduler-ip-10-0-157-165.ec2.internal/openshift-kube-scheduler/dummy/dummy", nil)
+			if err != nil {
+				t.Errorf("Failed to create HTTP request. E: %v", err)
+			}
+			router.ServeHTTP(rr, req)
+			resp = rr.Body.String()
+			status = rr.Code
+			expected, err = json.Marshal(map[string]interface{}{"Error": fmt.Errorf("Incorrect format: Please Enter Start Time in the following format YYYY-MM-DDTHH:MM:SS[TIMEZONE ex:+00:00]").Error()})
+			if err != nil {
+				t.Errorf("failed to marshal test data. E: %v", err)
+			}
+			expectedStatus = http.StatusBadRequest
+		case "No logs in given time interval":
+			rr := httptest.NewRecorder()
+			req, err := http.NewRequest(http.MethodGet, "/logs/multifilter/openshift-kube-scheduler-ip-10-0-157-165.ec2.internal/openshift-kube-scheduler/2021-03-27T14:22:20+05:30/2021-03-27T14:23:20+05:30", nil)
+			if err != nil {
+				t.Errorf("Failed to create HTTP request. E: %v", err)
+			}
+			router.ServeHTTP(rr, req)
+			resp = rr.Body.String()
+			status = rr.Code
+			expected, err = json.Marshal(map[string]interface{}{"Please Check Entered Parameters": fmt.Errorf("No logs found!")})
+			if err != nil {
+				t.Errorf("failed to marshal test data. E: %v", err)
+			}
+			expectedStatus = http.StatusBadRequest
 		}
+
 		expectedResp := string(expected)
-
 		if resp != expectedResp {
 			t.Errorf("expected response to be %s, got %s", expectedResp, resp)
+		}
+		if status != expectedStatus {
+			t.Errorf("expected response to be %v, got %v", expectedStatus, status)
 		}
 	}
 
