@@ -19,35 +19,30 @@ func Test_ControllerFilterByIndex(t *testing.T) {
 		Index      string
 		ShouldFail bool
 		TestData   []string
-		Error	   error
 	}{
 		{
 			"Filter by App index",
 			"app",
 			false,
 			[]string{"test-log-1", "test-log-2", "test-log-3"},
-			nil,
 		},
 		{
 			"Filter by Infra index",
 			"infra",
 			false,
 			[]string{"test-log-1", "test-log-2", "test-log-3"},
-			nil,
 		},
 		{
 			"Filter by Audit index",
 			"audit",
 			false,
 			[]string{"test-log-1", "test-log-2", "test-log-3"},
-			nil,
 		},
 		{
 			"Filter by Invalid index",
 			"api",
 			false,
 			[]string{},
-			fmt.Errorf("Not Found Error"),
 		},
 	}
 
@@ -77,7 +72,7 @@ func Test_ControllerFilterByIndex(t *testing.T) {
 		}
 
 		if !(tt.Index == "app" || tt.Index == "infra" || tt.Index == "audit") {
-			expected, err = json.Marshal(map[string]interface{}{"Invalid Index Entered ": tt.Error})
+			expected, err = json.Marshal(map[string]interface{}{"Invalid Index Entered ": fmt.Errorf("Not Found Error")})
 			expectedStatus = http.StatusBadRequest
 		}
 		
