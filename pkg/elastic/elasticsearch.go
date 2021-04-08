@@ -6,13 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
-	"strings"
-	"time"
 	"github.com/ViaQ/log-exploration-api/pkg/configuration"
 	"github.com/ViaQ/log-exploration-api/pkg/logs"
 	"github.com/elastic/go-elasticsearch/v7"
 	"go.uber.org/zap"
+	"net/http"
+	"strings"
+	"time"
 )
 
 type ElasticRepository struct {
@@ -60,27 +60,27 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 	var queryBuilder []map[string]interface{}
 
 	if len(params.Namespace) > 0 {
-		 term :=map[string]interface{}{
-			"term":map[string]interface{}{
+		term := map[string]interface{}{
+			"term": map[string]interface{}{
 				"kubernetes.namespace_name": params.Namespace},
-			}
+		}
 		queryBuilder = append(queryBuilder, term)
 		numParameters = numParameters + 1
 	}
 
 	if len(params.Podname) > 0 {
 
-		term :=map[string]interface{}{
-			"term":map[string]interface{}{
-				"kubernetes.pod_name":params.Podname},
+		term := map[string]interface{}{
+			"term": map[string]interface{}{
+				"kubernetes.pod_name": params.Podname},
 		}
 		queryBuilder = append(queryBuilder, term)
 		numParameters = numParameters + 1
 	}
 	if len(params.Index) > 0 {
-		term :=map[string]interface{}{
-			"term":map[string]interface{}{
-				"_index":fmt.Sprintf("%s",params.Index)},
+		term := map[string]interface{}{
+			"term": map[string]interface{}{
+				"_index": fmt.Sprintf("%s", params.Index)},
 		}
 		queryBuilder = append(queryBuilder, term)
 		numParameters = numParameters + 1
@@ -88,10 +88,10 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 	if len(params.StartTime) > 0 && len(params.FinishTime) > 0 {
 
 		timeSubquery := map[string]interface{}{
-			"range":map[string]interface{}{
-				"@timestamp":map[string]interface{}{
-					"gte":params.StartTime,
-					"lte":params.FinishTime,
+			"range": map[string]interface{}{
+				"@timestamp": map[string]interface{}{
+					"gte": params.StartTime,
+					"lte": params.FinishTime,
 				},
 			},
 		}
@@ -99,26 +99,25 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 		numParameters = numParameters + 1
 	}
 	if len(params.Level) > 0 {
-		term :=map[string]interface{}{
-			"term":map[string]interface{}{
-				"level":params.Level},
+		term := map[string]interface{}{
+			"term": map[string]interface{}{
+				"level": params.Level},
 		}
 		queryBuilder = append(queryBuilder, term)
 		numParameters = numParameters + 1
 	}
 
-
 	query := map[string]interface{}{
-		"query":   map[string]interface{}{
-			"bool": 	map[string]interface{}{
-				"should":queryBuilder,
-				"minimum_should_match":numParameters}},
-					"size":"5"}
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
+				"should":               queryBuilder,
+				"minimum_should_match": numParameters}},
+		"size": "1000"}
 
-	logsList,err := getLogsList(query,repository.esClient,repository.log)
+	logsList, err := getLogsList(query, repository.esClient, repository.log)
 
-	if(err!=nil){
-		return nil,err
+	if err != nil {
+		return nil, err
 	}
 
 	return logsList, nil
@@ -126,11 +125,11 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 
 func getLogsList(query map[string]interface{}, esClient *elasticsearch.Client, log *zap.Logger) ([]string, error) {
 
-	jsonQuery,err := json.Marshal(query)
+	jsonQuery, err := json.Marshal(query)
 
-	if(err!=nil){
-		log.Error("An Error occurred while processing the query",zap.Error(err))
-		return nil,err
+	if err != nil {
+		log.Error("An Error occurred while processing the query", zap.Error(err))
+		return nil, err
 	}
 
 	var logsList []string // create a slice of type string to append logs to
@@ -147,46 +146,44 @@ func getLogsList(query map[string]interface{}, esClient *elasticsearch.Client, l
 		esClient.Search.WithPretty(),
 	)
 
-
 	if err != nil {
 		log.Error("failed exec ES query", zap.Error(err))
 		return logsList, getError(err)
 	}
-
 
 	var result map[string]interface{}
 
 	err = json.NewDecoder(searchResult.Body).Decode(&result) //convert searchresult to map[string]interface{}
 	if err != nil {
 		log.Error("Error occurred while decoding JSON", zap.Error(err))
-		return  logsList,err
+		return logsList, err
 	}
 
 	if _, ok := result["hits"]; !ok {
 		log.Error("An error occurred while fetching logs", zap.Any("result", result))
-		return logsList,logs.NotFoundError()
+		return logsList, logs.NotFoundError()
 	}
 	logsList = getRelevantLogs(result)
 
-	return logsList,nil
+	return logsList, nil
 }
 
 func (repository *ElasticRepository) FilterByIndex(index string) ([]string, error) {
 
 	query := map[string]interface{}{
-		"query":map[string]interface{}{
-			"match":map[string]interface{}{
-				"_index":map[string]interface{}{
-					"query":index,
+		"query": map[string]interface{}{
+			"match": map[string]interface{}{
+				"_index": map[string]interface{}{
+					"query": index,
 				},
 			},
-		},"size":"1000",
+		}, "size": "1000",
 	}
 
 	var logsList []string // create a slice of type string to append logs to
-	logsList,err := getLogsList(query,repository.esClient,repository.log)
+	logsList, err := getLogsList(query, repository.esClient, repository.log)
 
-	if(err!=nil){
+	if err != nil {
 		return nil, err
 	}
 
@@ -200,19 +197,19 @@ func (repository *ElasticRepository) FilterByTime(startTime time.Time, finishTim
 	start := startTime.UTC().Format(time.RFC3339Nano)
 	finish := finishTime.UTC().Format(time.RFC3339Nano)
 	query := map[string]interface{}{
-		"query":map[string]interface{}{
-			"range":map[string]interface{}{
-				"@timestamp":map[string]interface{}{
-					"gte":start,
-					"lte":finish,
+		"query": map[string]interface{}{
+			"range": map[string]interface{}{
+				"@timestamp": map[string]interface{}{
+					"gte": start,
+					"lte": finish,
 				},
 			},
-		},"size":"1000",
+		}, "size": "1000",
 	}
 
-	logsList,err := getLogsList(query,repository.esClient,repository.log)
+	logsList, err := getLogsList(query, repository.esClient, repository.log)
 
-	if(err!=nil){
+	if err != nil {
 		return nil, err
 	}
 
@@ -223,18 +220,18 @@ func (repository *ElasticRepository) FilterByPodName(podName string) ([]string, 
 
 	var logsList []string // create a slice of type string to append logs to
 	query := map[string]interface{}{
-		"query":map[string]interface{}{
-			"match":map[string]interface{}{
-				"kubernetes.pod_name":map[string]interface{}{
-					"query":podName,
+		"query": map[string]interface{}{
+			"match": map[string]interface{}{
+				"kubernetes.pod_name": map[string]interface{}{
+					"query": podName,
 				},
 			},
-		},"size":"1000",
+		}, "size": "1000",
 	}
 
-	logsList,err := getLogsList(query,repository.esClient,repository.log)
+	logsList, err := getLogsList(query, repository.esClient, repository.log)
 
-	if(err!=nil){
+	if err != nil {
 		return nil, err
 	}
 	return logsList, nil
@@ -245,12 +242,12 @@ func (repository *ElasticRepository) GetAllLogs() ([]string, error) {
 
 	//query := fmt.Sprintf(`{"size":"1000"}`)
 	query := map[string]interface{}{
-		"size":"1000",
+		"size": "1000",
 	}
 	var logsList []string // create a slice of type string to append logs to
-	logsList,err := getLogsList(query,repository.esClient,repository.log)
+	logsList, err := getLogsList(query, repository.esClient, repository.log)
 
-	if(err!=nil){
+	if err != nil {
 		return nil, err
 	}
 
@@ -262,48 +259,43 @@ func (repository *ElasticRepository) FilterLogsMultipleParameters(podName string
 
 	start := startTime.UTC().Format(time.RFC3339Nano)
 	finish := finishTime.UTC().Format(time.RFC3339Nano)
-	query:= map[string]interface{}{
-		"query":map[string]interface{}{
-			"bool":map[string]interface{}{
-				"should":[]map[string]interface{}{
+	query := map[string]interface{}{
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
+				"should": []map[string]interface{}{
 					{
-						"term":map[string]interface{}{
-							"kubernetes.namespace_name":namespace,
+						"term": map[string]interface{}{
+							"kubernetes.namespace_name": namespace,
 						},
-
 					},
 					{
-						"term":map[string]interface{}{
-							"kubernetes.pod_name":podName,
+						"term": map[string]interface{}{
+							"kubernetes.pod_name": podName,
 						},
-
 					},
 					{
-						"range":map[string]interface{}{
-							"@timestamp":map[string]interface{}{
-								"gte":start,
-								"lte":finish,
+						"range": map[string]interface{}{
+							"@timestamp": map[string]interface{}{
+								"gte": start,
+								"lte": finish,
 							},
 						},
-
 					},
 				},
-				"minimum_should_match":3,
+				"minimum_should_match": 3,
 			},
-		},"size":"1000",
+		}, "size": "1000",
 	}
 
+	logsList, err := getLogsList(query, repository.esClient, repository.log)
 
-	logsList,err := getLogsList(query,repository.esClient,repository.log)
-
-	if(err!=nil){
+	if err != nil {
 		return nil, err
 	}
 
 	return logsList, nil
 
 }
-
 
 func getRelevantLogs(result map[string]interface{}) []string {
 	// iterate through the logs and add them to a slice
