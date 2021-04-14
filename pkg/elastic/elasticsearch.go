@@ -6,14 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/ViaQ/log-exploration-api/pkg/configuration"
 	"github.com/ViaQ/log-exploration-api/pkg/logs"
 	"github.com/elastic/go-elasticsearch/v7"
 	"go.uber.org/zap"
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
 )
 
 type ElasticRepository struct {
@@ -108,21 +108,22 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 		numParameters = numParameters + 1
 	}
 
-	maxEntries := 1000 //default value in case params.MaxLogs is nil
+	// maxEntries := 1000 //default value in case params.MaxLogs is nil
 
-	if len(params.MaxLogs) > 0 {
-		maxLogs, err := strconv.Atoi(params.MaxLogs)
-		if err == nil {
-			maxEntries = maxLogs
-		}
-	}
+	// if len(params.MaxLogs) > 0 {
+	// 	maxLogs, err := strconv.Atoi(params.MaxLogs)
+	// 	if err == nil {
+	// 		maxEntries = maxLogs
+	// 	}
+	// }
 
 	query := map[string]interface{}{
 		"query": map[string]interface{}{
 			"bool": map[string]interface{}{
 				"should":               queryBuilder,
 				"minimum_should_match": numParameters}},
-		"size": maxEntries}
+		// "size": maxEntries
+	}
 
 	logsList, err := getLogsList(query, repository.esClient, repository.log)
 
