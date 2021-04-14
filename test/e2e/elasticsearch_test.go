@@ -4,10 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"time"
-
 	"github.com/ViaQ/log-exploration-api/pkg/configuration"
-	"github.com/ViaQ/log-exploration-api/pkg/constants"
 	"github.com/ViaQ/log-exploration-api/pkg/elastic"
 	"github.com/ViaQ/log-exploration-api/pkg/logs"
 	"go.uber.org/zap"
@@ -23,83 +20,28 @@ func TestMain(t *testing.T) {
 	esRepository, _ = elastic.NewElasticRepository(log.Named("elasticsearch"), appConf.Elasticsearch)
 }
 
-func TestGetAllLogs(t *testing.T) {
+func TestFilterLogs(t *testing.T) {
 	repository := esRepository
-	logList, err := repository.GetAllLogs()
+	params := logs.Parameters{
+		Index:      "app",
+		Level:      "info",
+		FinishTime: "2021-03-17T14:23:20+05:30",
+		StartTime:  "2021-03-17T14:22:20+05:30",
+		Podname:    "openshift-kube-scheduler-ip-10-0-157-165.ec2.internal",
+		Namespace:  "openshift-kube-scheduler",
+	}
+	logList, err := repository.FilterLogs(params)
 	if err != nil {
 		t.Error("Error: ", err)
 	}
 	if logList == nil {
-		t.Error("Failed to fetch the logs!")
+		t.Error("Invalid parameters")
 	}
 	if !((strings.Contains(logList[0], "index") &&
-		 strings.Contains(logList[0], "container_name") && 
-		 strings.Contains(logList[0], "pod")) ||
-	     strings.Contains(logList[0], "No logs")) {
-		t.Error("Logs not found!")
-	}
-}
-
-func TestFilterByIndex(t *testing.T) {
-	repository := esRepository
-	logList, err := repository.FilterByIndex(constants.InfraIndexName)
-	if err != nil {
-		t.Error("Error: ", err)
-	}
-	if logList == nil {
-		t.Error("Index not found!")
-	}
-	if !(strings.Contains(logList[0], "index") || strings.Contains(logList[0], "No logs")) {
-		t.Error("Logs not found!")
-	}
-}
-
-func TestFilterByTime(t *testing.T) {
-	repository := esRepository
-	t2 := time.Now()
-	count := 10
-	t1 := t2.Add(time.Duration(-count) * time.Minute)
-	logList, err := repository.FilterByTime(t1, t2)
-	if err != nil || logList == nil {
-		t.Error("Error: ", err)
-	}
-	if !((strings.Contains(logList[0], "timestamp") &&
-		 strings.Contains(logList[0], "pod")) ||
-	     strings.Contains(logList[0], "No logs")) {
-		t.Error("Logs not found!")
-	}
-}
-
-func TestFilterByPodname(t *testing.T) {
-	repository := esRepository
-	logList, err := repository.FilterByPodName("kube-apiserver-ip-10-0-146-1.ec2.internal")
-	if err != nil {
-		t.Error("Error: ", err)
-	}
-	if logList == nil {
-		t.Error("Invalid podname!")
-	}
-	if !(strings.Contains(logList[0], "pod_name") ||
-	     strings.Contains(logList[0], "No logs")) {
-		t.Error("Logs not found!")
-	}
-}
-
-func TestFilterLogsMultipleParameters(t *testing.T) {
-	repository := esRepository
-	t2 := time.Now()
-	count := 10
-	t1 := t2.Add(time.Duration(-count) * time.Minute)
-	logList, err := repository.FilterLogsMultipleParameters("kube-apiserver-ip-10-0-146-1.ec2.internal", "openshift-kube-apiserver", t1, t2)
-	if err != nil {
-		t.Error("Error: ", err)
-	}
-	if logList == nil {
-		t.Error("Invalid podname/namepsace!")
-	}
-	if !((strings.Contains(logList[0], "namespace_name") &&
+		strings.Contains(logList[0], "timestamp") &&
+		strings.Contains(logList[0], "namespace_name") &&
 		strings.Contains(logList[0], "pod_name")) ||
-	     strings.Contains(logList[0], "No logs")) {
+		strings.Contains(logList[0], "No logs")) {
 		t.Error("Logs not found!")
 	}
 }

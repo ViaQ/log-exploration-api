@@ -2,7 +2,6 @@ package elastic
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -116,7 +115,7 @@ func (m *MockedElasticsearchProvider) FilterLogs(params logs.Parameters) ([]stri
 		}
 		temp = result
 		result = []string{}
-	} 
+	}
 	if len(params.Namespace) > 0 {
 		for _, v := range temp {
 			ns := "namespace_name: " + params.Namespace
@@ -131,163 +130,5 @@ func (m *MockedElasticsearchProvider) FilterLogs(params logs.Parameters) ([]stri
 	if len(result) == 0 {
 		return nil, logs.NotFoundError()
 	}
-	return result, nil
-}
-
-func (m *MockedElasticsearchProvider) FilterByIndex(index string) ([]string, error) {
-	var lg map[time.Time][]string
-	switch strings.ToLower(index) {
-	case "app":
-		lg = m.App
-	case "infra":
-		lg = m.Infra
-	case "audit":
-		lg = m.Audit
-	}
-	if len(lg) == 0 {
-		return nil, logs.NotFoundError()
-	}
-
-	result := []string{}
-	for _, v := range lg {
-		result = append(result, v...)
-	}
-	return result, nil
-}
-
-func (m *MockedElasticsearchProvider) FilterByTime(startTime time.Time, finishTime time.Time) ([]string, error) {
-	lg := make(map[time.Time][]string)
-	for k, v := range m.App {
-		if v != nil {
-			lg[k] = v
-		}
-	}
-	for k, v := range m.Infra {
-		if v != nil {
-			lg[k] = v
-		}
-	}
-	for k, v := range m.Audit {
-		if v != nil {
-			lg[k] = v
-		}
-	}
-
-	if len(lg) == 0 {
-		return nil, logs.NotFoundError()
-	}
-
-	result := []string{}
-	for k, v := range lg {
-		if k.After(startTime) && k.Before(finishTime) {
-			result = append(result, v...)
-		}
-	}
-	return result, nil
-}
-
-func (m *MockedElasticsearchProvider) GetAllLogs() ([]string, error) {
-	lg := make(map[time.Time][]string)
-	for k, v := range m.App {
-		if v != nil {
-			lg[k] = v
-		}
-	}
-	for k, v := range m.Infra {
-		if v != nil {
-			lg[k] = v
-		}
-	}
-	for k, v := range m.Audit {
-		if v != nil {
-			lg[k] = v
-		}
-	}
-
-	if len(lg) == 0 {
-		return nil, logs.NotFoundError()
-	}
-
-	result := []string{}
-	for _, v := range lg {
-		result = append(result, v...)
-	}
-
-	return result, nil
-}
-
-func (m *MockedElasticsearchProvider) FilterByPodName(podName string) ([]string, error) {
-	lg := make(map[time.Time][]string)
-	for k, v := range m.App {
-		if v != nil {
-			lg[k] = v
-		}
-	}
-	for k, v := range m.Infra {
-		if v != nil {
-			lg[k] = v
-		}
-	}
-	for k, v := range m.Audit {
-		if v != nil {
-			lg[k] = v
-		}
-	}
-
-	if len(lg) == 0 {
-		return nil, logs.NotFoundError()
-	}
-
-	result := []string{}
-	for _, v := range lg {
-		if strings.Contains(v[0], "pod_name: "+podName) {
-			result = append(result, v...)
-		}
-	}
-	if len(result) == 0 {
-		return nil, logs.NotFoundError()
-	}
-
-	return result, nil
-}
-
-func (m *MockedElasticsearchProvider) FilterLogsMultipleParameters(podName string, namespace string, startTime time.Time, finishTime time.Time) ([]string, error) {
-	lg := make(map[time.Time][]string)
-	for k, v := range m.App {
-		if v != nil {
-			lg[k] = v
-		}
-	}
-	for k, v := range m.Infra {
-		if v != nil {
-			lg[k] = v
-		}
-	}
-	for k, v := range m.Audit {
-		if v != nil {
-			lg[k] = v
-		}
-	}
-
-	if len(lg) == 0 {
-		return nil, logs.NotFoundError()
-	}
-
-	result := []string{}
-	for k, v := range lg {
-		pod := "pod_name: " + podName
-		ns := "namespace_name: " + namespace
-		fmt.Print(pod, ns)
-		if k.After(startTime) && k.Before(finishTime) &&
-			strings.Contains(v[0], pod) &&
-			strings.Contains(v[0], ns) {
-			result = append(result, v...)
-		}
-	}
-
-	if len(result) == 0 {
-		return nil, logs.NotFoundError()
-	}
-
 	return result, nil
 }
