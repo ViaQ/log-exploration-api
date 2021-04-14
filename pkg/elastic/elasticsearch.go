@@ -11,6 +11,7 @@ import (
 	"github.com/elastic/go-elasticsearch/v7"
 	"go.uber.org/zap"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -80,7 +81,7 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 	if len(params.Index) > 0 {
 		term := map[string]interface{}{
 			"term": map[string]interface{}{
-				"_index": fmt.Sprintf("%s", params.Index)},
+				"_index": params.Index},
 		}
 		queryBuilder = append(queryBuilder, term)
 		numParameters = numParameters + 1
@@ -107,12 +108,23 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 		numParameters = numParameters + 1
 	}
 
+	maxEntries := 1000 //default value in case params.MaxLogs is nil
+
+	if len(params.MaxLogs) > 0 {
+		maxLogs, err := strconv.Atoi(params.MaxLogs)
+		if err != nil {
+			maxEntries = 1000
+		} else {
+			maxEntries = maxLogs
+		}
+	}
+
 	query := map[string]interface{}{
 		"query": map[string]interface{}{
 			"bool": map[string]interface{}{
 				"should":               queryBuilder,
 				"minimum_should_match": numParameters}},
-		"size": "1000"}
+		"size": maxEntries}
 
 	logsList, err := getLogsList(query, repository.esClient, repository.log)
 

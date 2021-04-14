@@ -35,7 +35,7 @@ func (controller *LogsController) FilterLogs(gctx *gin.Context) {
 
 	var params logs.Parameters
 	err := gctx.BindJSON(&params)
-	if err!=nil{
+	if err != nil {
 		gctx.JSON(http.StatusInternalServerError, gin.H{ //If Error is not nil and logs is not nil, an internal error might have ocurred
 			"An Error Occurred": err,
 		})
