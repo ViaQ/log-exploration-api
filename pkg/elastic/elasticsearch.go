@@ -112,9 +112,7 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 
 	if len(params.MaxLogs) > 0 {
 		maxLogs, err := strconv.Atoi(params.MaxLogs)
-		if err != nil {
-			maxEntries = 1000
-		} else {
+		if err == nil {
 			maxEntries = maxLogs
 		}
 	}
