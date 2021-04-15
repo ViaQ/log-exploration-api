@@ -106,7 +106,7 @@ func Test_ControllerFilterLogs(t *testing.T) {
 			router.ServeHTTP(rr, req)
 			resp = rr.Body.String()
 			status = rr.Code
-			expected, err = json.Marshal(map[string]interface{}{"logs": tt.TestData})
+			expected, err = json.Marshal(map[string]interface{}{"Logs": tt.TestData})
 			if err != nil {
 				t.Errorf("failed to marshal test data. E: %v", err)
 			}
@@ -124,7 +124,7 @@ func Test_ControllerFilterLogs(t *testing.T) {
 			router.ServeHTTP(rr, req)
 			resp = rr.Body.String()
 			status = rr.Code
-			expected, err = json.Marshal(map[string]interface{}{"logs": tt.TestData})
+			expected, err = json.Marshal(map[string]interface{}{"Logs": tt.TestData})
 			if err != nil {
 				t.Errorf("failed to marshal test data. E: %v", err)
 			}
@@ -143,7 +143,7 @@ func Test_ControllerFilterLogs(t *testing.T) {
 			router.ServeHTTP(rr, req)
 			resp = rr.Body.String()
 			status = rr.Code
-			expected, err = json.Marshal(map[string]interface{}{"logs": tt.TestData})
+			expected, err = json.Marshal(map[string]interface{}{"Logs": tt.TestData})
 			if err != nil {
 				t.Errorf("failed to marshal test data. E: %v", err)
 			}
@@ -161,7 +161,7 @@ func Test_ControllerFilterLogs(t *testing.T) {
 			router.ServeHTTP(rr, req)
 			resp = rr.Body.String()
 			status = rr.Code
-			expected, err = json.Marshal(map[string]interface{}{"logs": tt.TestData})
+			expected, err = json.Marshal(map[string]interface{}{"Logs": tt.TestData})
 			if err != nil {
 				t.Errorf("failed to marshal test data. E: %v", err)
 			}
@@ -183,7 +183,7 @@ func Test_ControllerFilterLogs(t *testing.T) {
 			router.ServeHTTP(rr, req)
 			resp = rr.Body.String()
 			status = rr.Code
-			expected, err = json.Marshal(map[string]interface{}{"logs": tt.TestData})
+			expected, err = json.Marshal(map[string]interface{}{"Logs": tt.TestData})
 			if err != nil {
 				t.Errorf("failed to marshal test data. E: %v", err)
 			}
@@ -205,7 +205,7 @@ func Test_ControllerFilterLogs(t *testing.T) {
 			router.ServeHTTP(rr, req)
 			resp = rr.Body.String()
 			status = rr.Code
-			expected, err = json.Marshal(map[string]interface{}{"Please Check input parameters": fmt.Errorf("No logs found!")})
+			expected, err = json.Marshal(map[string]interface{}{"Please check the input parameters": fmt.Errorf("No logs found!")})
 			if err != nil {
 				t.Errorf("failed to marshal test data. E: %v", err)
 			}
@@ -224,7 +224,7 @@ func Test_ControllerFilterLogs(t *testing.T) {
 			router.ServeHTTP(rr, req)
 			resp = rr.Body.String()
 			status = rr.Code
-			expected, err = json.Marshal(map[string]interface{}{"Please Check input parameters": fmt.Errorf("No logs found!")})
+			expected, err = json.Marshal(map[string]interface{}{"Please check the input parameters": fmt.Errorf("No logs found!")})
 			if err != nil {
 				t.Errorf("failed to marshal test data. E: %v", err)
 			}
@@ -243,7 +243,7 @@ func Test_ControllerFilterLogs(t *testing.T) {
 			router.ServeHTTP(rr, req)
 			resp = rr.Body.String()
 			status = rr.Code
-			expected, err = json.Marshal(map[string]interface{}{"Please Check input parameters": fmt.Errorf("No logs found!")})
+			expected, err = json.Marshal(map[string]interface{}{"Please check the input parameters": fmt.Errorf("No logs found!")})
 			if err != nil {
 				t.Errorf("failed to marshal test data. E: %v", err)
 			}
