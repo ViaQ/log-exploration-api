@@ -139,7 +139,7 @@ func getLogsList(query map[string]interface{}, esClient *elasticsearch.Client, l
 	jsonQuery, err := json.Marshal(query)
 
 	if err != nil {
-		log.Error("An Error occurred while processing the query", zap.Error(err))
+		log.Error("An error occurred while processing the query", zap.Error(err))
 		return nil, err
 	}
 
@@ -189,14 +189,14 @@ func getRelevantLogs(result map[string]interface{}) []string {
 	}
 
 	if len(logsList) == 0 {
-		logsList = append(logsList, "No logs Present or the entry does not exist")
+		logsList = append(logsList, "No logs are present or the entry does not exist")
 	}
 
 	return logsList
 }
 
 func getError(err error) error {
-	fmt.Println("An Error occurred while getting a response: ", err)
-	err = errors.New("An Error occurred while fetching logs")
+	fmt.Println("An error occurred while getting a response: ", err)
+	err = errors.New("An error occurred while fetching logs")
 	return err
 }
