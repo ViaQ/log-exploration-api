@@ -6,14 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"strconv"
+	"strings"
+
 	"github.com/ViaQ/log-exploration-api/pkg/configuration"
 	"github.com/ViaQ/log-exploration-api/pkg/logs"
 	"github.com/elastic/go-elasticsearch/v7"
 	"go.uber.org/zap"
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
 )
 
 type ElasticRepository struct {
@@ -122,7 +122,8 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 			"bool": map[string]interface{}{
 				"should":               queryBuilder,
 				"minimum_should_match": numParameters}},
-		"size": maxEntries}
+		"size": maxEntries,
+	}
 
 	logsList, err := getLogsList(query, repository.esClient, repository.log)
 
@@ -176,135 +177,6 @@ func getLogsList(query map[string]interface{}, esClient *elasticsearch.Client, l
 	logsList = getRelevantLogs(result)
 
 	return logsList, nil
-}
-
-func (repository *ElasticRepository) FilterByIndex(index string) ([]string, error) {
-
-	query := map[string]interface{}{
-		"query": map[string]interface{}{
-			"match": map[string]interface{}{
-				"_index": map[string]interface{}{
-					"query": index,
-				},
-			},
-		}, "size": "1000",
-	}
-
-	var logsList []string // create a slice of type string to append logs to
-	logsList, err := getLogsList(query, repository.esClient, repository.log)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return logsList, nil
-
-}
-func (repository *ElasticRepository) FilterByTime(startTime time.Time, finishTime time.Time) ([]string, error) {
-
-	var logsList []string // create a slice of type string to append logs to
-
-	start := startTime.UTC().Format(time.RFC3339Nano)
-	finish := finishTime.UTC().Format(time.RFC3339Nano)
-	query := map[string]interface{}{
-		"query": map[string]interface{}{
-			"range": map[string]interface{}{
-				"@timestamp": map[string]interface{}{
-					"gte": start,
-					"lte": finish,
-				},
-			},
-		}, "size": "1000",
-	}
-
-	logsList, err := getLogsList(query, repository.esClient, repository.log)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return logsList, nil
-}
-
-func (repository *ElasticRepository) FilterByPodName(podName string) ([]string, error) {
-
-	var logsList []string // create a slice of type string to append logs to
-	query := map[string]interface{}{
-		"query": map[string]interface{}{
-			"match": map[string]interface{}{
-				"kubernetes.pod_name": map[string]interface{}{
-					"query": podName,
-				},
-			},
-		}, "size": "1000",
-	}
-
-	logsList, err := getLogsList(query, repository.esClient, repository.log)
-
-	if err != nil {
-		return nil, err
-	}
-	return logsList, nil
-
-}
-
-func (repository *ElasticRepository) GetAllLogs() ([]string, error) {
-
-	//query := fmt.Sprintf(`{"size":"1000"}`)
-	query := map[string]interface{}{
-		"size": "1000",
-	}
-	var logsList []string // create a slice of type string to append logs to
-	logsList, err := getLogsList(query, repository.esClient, repository.log)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return logsList, nil
-}
-
-func (repository *ElasticRepository) FilterLogsMultipleParameters(podName string, namespace string, startTime time.Time, finishTime time.Time) ([]string, error) {
-	var logsList []string // create a slice of type string to append logs to
-
-	start := startTime.UTC().Format(time.RFC3339Nano)
-	finish := finishTime.UTC().Format(time.RFC3339Nano)
-	query := map[string]interface{}{
-		"query": map[string]interface{}{
-			"bool": map[string]interface{}{
-				"should": []map[string]interface{}{
-					{
-						"term": map[string]interface{}{
-							"kubernetes.namespace_name": namespace,
-						},
-					},
-					{
-						"term": map[string]interface{}{
-							"kubernetes.pod_name": podName,
-						},
-					},
-					{
-						"range": map[string]interface{}{
-							"@timestamp": map[string]interface{}{
-								"gte": start,
-								"lte": finish,
-							},
-						},
-					},
-				},
-				"minimum_should_match": 3,
-			},
-		}, "size": "1000",
-	}
-
-	logsList, err := getLogsList(query, repository.esClient, repository.log)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return logsList, nil
-
 }
 
 func getRelevantLogs(result map[string]interface{}) []string {
