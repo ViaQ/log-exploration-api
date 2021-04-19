@@ -1,7 +1,6 @@
 package logscontroller
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,7 +9,6 @@ import (
 	"time"
 
 	"github.com/ViaQ/log-exploration-api/pkg/elastic"
-	"github.com/ViaQ/log-exploration-api/pkg/logs"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -85,21 +83,10 @@ func Test_ControllerFilterLogs(t *testing.T) {
 		var resp string
 		var expected []byte
 		var status, expectedStatus int
-		parameters := logs.Parameters{
-			Index:      "",
-			Level:      "",
-			FinishTime: "",
-			StartTime:  "",
-			Podname:    "",
-			Namespace:  "",
-		}
 		switch tt.TestName {
 		case "Filter by no parameters":
 			rr := httptest.NewRecorder()
-			gctx, _ := gin.CreateTestContext(rr)
-			body := new(bytes.Buffer)
-			json.NewEncoder(body).Encode(parameters)
-			req, err := http.NewRequestWithContext(gctx, http.MethodGet, "/logs/filter", body)
+			req, err := http.NewRequest(http.MethodGet, "/logs/filter", nil)
 			if err != nil {
 				t.Errorf("Failed to create HTTP request. E: %v", err)
 			}
@@ -113,11 +100,10 @@ func Test_ControllerFilterLogs(t *testing.T) {
 			expectedStatus = http.StatusOK
 		case "Filter by index":
 			rr := httptest.NewRecorder()
-			gctx, _ := gin.CreateTestContext(rr)
-			parameters.Index = tt.Index
-			body := new(bytes.Buffer)
-			json.NewEncoder(body).Encode(parameters)
-			req, err := http.NewRequestWithContext(gctx, http.MethodGet, "/logs/filter", body)
+			req, err := http.NewRequest(http.MethodGet, "/logs/filter", nil)
+			q := req.URL.Query()
+			q.Add("index", tt.Index)
+			req.URL.RawQuery = q.Encode()
 			if err != nil {
 				t.Errorf("Failed to create HTTP request. E: %v", err)
 			}
@@ -132,11 +118,11 @@ func Test_ControllerFilterLogs(t *testing.T) {
 		case "Filter by time":
 			rr := httptest.NewRecorder()
 			gctx, _ := gin.CreateTestContext(rr)
-			parameters.FinishTime = "2021-03-17T14:23:20+05:30"
-			parameters.StartTime = "2021-03-17T14:22:20+05:30"
-			body := new(bytes.Buffer)
-			json.NewEncoder(body).Encode(parameters)
-			req, err := http.NewRequestWithContext(gctx, http.MethodGet, "/logs/filter", body)
+			req, err := http.NewRequestWithContext(gctx, http.MethodGet, "/logs/filter", nil)
+			q := req.URL.Query()
+			q.Add("starttime", "2021-03-17T14:22:20+05:30")
+			q.Add("finishtime", "2021-03-17T14:23:20+05:30")
+			req.URL.RawQuery = q.Encode()
 			if err != nil {
 				t.Errorf("Failed to create HTTP request. E: %v", err)
 			}
@@ -150,11 +136,10 @@ func Test_ControllerFilterLogs(t *testing.T) {
 			expectedStatus = http.StatusOK
 		case "Filter by podname":
 			rr := httptest.NewRecorder()
-			gctx, _ := gin.CreateTestContext(rr)
-			parameters.Podname = "openshift-kube-scheduler-ip-10-0-157-165.ec2.internal"
-			body := new(bytes.Buffer)
-			json.NewEncoder(body).Encode(parameters)
-			req, err := http.NewRequestWithContext(gctx, http.MethodGet, "/logs/filter", body)
+			req, err := http.NewRequest(http.MethodGet, "/logs/filter", nil)
+			q := req.URL.Query()
+			q.Add("podname", "openshift-kube-scheduler-ip-10-0-157-165.ec2.internal")
+			req.URL.RawQuery = q.Encode()
 			if err != nil {
 				t.Errorf("Failed to create HTTP request. E: %v", err)
 			}
@@ -168,15 +153,14 @@ func Test_ControllerFilterLogs(t *testing.T) {
 			expectedStatus = http.StatusOK
 		case "Filter by multiple parameters":
 			rr := httptest.NewRecorder()
-			gctx, _ := gin.CreateTestContext(rr)
-			parameters.Index = tt.Index
-			parameters.FinishTime = "2021-03-17T14:23:20+05:30"
-			parameters.StartTime = "2021-03-17T14:22:20+05:30"
-			parameters.Podname = "openshift-kube-scheduler-ip-10-0-157-165.ec2.internal"
-			parameters.Namespace = "openshift-kube-scheduler"
-			body := new(bytes.Buffer)
-			json.NewEncoder(body).Encode(parameters)
-			req, err := http.NewRequestWithContext(gctx, http.MethodGet, "/logs/filter", body)
+			req, err := http.NewRequest(http.MethodGet, "/logs/filter", nil)
+			q := req.URL.Query()
+			q.Add("index", tt.Index)
+			q.Add("podname", "openshift-kube-scheduler-ip-10-0-157-165.ec2.internal")
+			q.Add("namespace", "openshift-kube-scheduler")
+			q.Add("starttime", "2021-03-17T14:22:20+05:30")
+			q.Add("finishtime", "2021-03-17T14:23:20+05:30")
+			req.URL.RawQuery = q.Encode()
 			if err != nil {
 				t.Errorf("Failed to create HTTP request. E: %v", err)
 			}
@@ -190,15 +174,14 @@ func Test_ControllerFilterLogs(t *testing.T) {
 			expectedStatus = http.StatusOK
 		case "Invalid parameters":
 			rr := httptest.NewRecorder()
-			gctx, _ := gin.CreateTestContext(rr)
-			parameters.Index = tt.Index
-			parameters.FinishTime = "2021-03-17T14:23:20+05:30"
-			parameters.StartTime = "2021-03-17T14:22:20+05:30"
-			parameters.Podname = "hello"
-			parameters.Namespace = "world"
-			body := new(bytes.Buffer)
-			json.NewEncoder(body).Encode(parameters)
-			req, err := http.NewRequestWithContext(gctx, http.MethodGet, "/logs/filter", body)
+			req, err := http.NewRequest(http.MethodGet, "/logs/filter", nil)
+			q := req.URL.Query()
+			q.Add("index", tt.Index)
+			q.Add("podname", "hello")
+			q.Add("namespace", "world")
+			q.Add("starttime", "2021-03-17T14:22:20+05:30")
+			q.Add("finishtime", "2021-03-17T14:23:20+05:30")
+			req.URL.RawQuery = q.Encode()
 			if err != nil {
 				t.Errorf("Failed to create HTTP request. E: %v", err)
 			}
@@ -212,12 +195,11 @@ func Test_ControllerFilterLogs(t *testing.T) {
 			expectedStatus = http.StatusBadRequest
 		case "Invalid timestamp":
 			rr := httptest.NewRecorder()
-			gctx, _ := gin.CreateTestContext(rr)
-			parameters.FinishTime = "hey"
-			parameters.StartTime = "hey"
-			body := new(bytes.Buffer)
-			json.NewEncoder(body).Encode(parameters)
-			req, err := http.NewRequestWithContext(gctx, http.MethodGet, "/logs/filter", body)
+			req, err := http.NewRequest(http.MethodGet, "/logs/filter", nil)
+			q := req.URL.Query()
+			q.Add("starttime", "hey")
+			q.Add("finishtime", "hey")
+			req.URL.RawQuery = q.Encode()
 			if err != nil {
 				t.Errorf("Failed to create HTTP request. E: %v", err)
 			}
@@ -229,14 +211,13 @@ func Test_ControllerFilterLogs(t *testing.T) {
 				t.Errorf("failed to marshal test data. E: %v", err)
 			}
 			expectedStatus = http.StatusBadRequest
-		case "No logs in given time interval":
+		case "No logs in the given time interval":
 			rr := httptest.NewRecorder()
-			gctx, _ := gin.CreateTestContext(rr)
-			parameters.FinishTime = "2022-03-17T14:23:20+05:30"
-			parameters.StartTime = "2022-03-17T14:22:20+05:30"
-			body := new(bytes.Buffer)
-			json.NewEncoder(body).Encode(parameters)
-			req, err := http.NewRequestWithContext(gctx, http.MethodGet, "/logs/filter", nil)
+			req, err := http.NewRequest(http.MethodGet, "/logs/filter", nil)
+			q := req.URL.Query()
+			q.Add("starttime", "2022-03-17T14:22:20+05:30")
+			q.Add("finishtime", "2022-03-17T14:23:20+05:30")
+			req.URL.RawQuery = q.Encode()
 			if err != nil {
 				t.Errorf("Failed to create HTTP request. E: %v", err)
 			}

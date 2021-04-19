@@ -54,10 +54,11 @@ func (m *MockedElasticsearchProvider) PutDataAtTime(logTime time.Time, index str
 	}
 }
 
-func (m *MockedElasticsearchProvider) FilterLogs(params logs.Parameters) ([]string, error) {
+func (m *MockedElasticsearchProvider) FilterLogs(index string, podname string, namespace string,
+	starttime string, finishtime string, level string, maxlogs string) ([]string, error) {
 	lg := make(map[time.Time][]string)
-	if len(params.Index) > 0 {
-		switch strings.ToLower(params.Index) {
+	if len(index) > 0 {
+		switch strings.ToLower(index) {
 		case "app":
 			lg = m.App
 		case "infra":
@@ -90,9 +91,9 @@ func (m *MockedElasticsearchProvider) FilterLogs(params logs.Parameters) ([]stri
 	result := []string{}
 	temp := []string{}
 
-	if len(params.FinishTime) > 0 && len(params.StartTime) > 0 {
-		start, _ := time.Parse(time.RFC3339Nano, params.StartTime)
-		finish, _ := time.Parse(time.RFC3339Nano, params.FinishTime)
+	if len(finishtime) > 0 && len(starttime) > 0 {
+		start, _ := time.Parse(time.RFC3339Nano, starttime)
+		finish, _ := time.Parse(time.RFC3339Nano, finishtime)
 		for k, v := range lg {
 			if k.After(start) && k.Before(finish) {
 				result = append(result, v...)
@@ -106,9 +107,9 @@ func (m *MockedElasticsearchProvider) FilterLogs(params logs.Parameters) ([]stri
 
 	temp = result
 	result = []string{}
-	if len(params.Podname) > 0 {
+	if len(podname) > 0 {
 		for _, v := range temp {
-			pod := "pod_name: " + params.Podname
+			pod := "pod_name: " + podname
 			if strings.Contains(v, pod) {
 				result = append(result, v)
 			}
@@ -116,9 +117,9 @@ func (m *MockedElasticsearchProvider) FilterLogs(params logs.Parameters) ([]stri
 		temp = result
 		result = []string{}
 	}
-	if len(params.Namespace) > 0 {
+	if len(namespace) > 0 {
 		for _, v := range temp {
-			ns := "namespace_name: " + params.Namespace
+			ns := "namespace_name: " + namespace
 			if strings.Contains(v, ns) {
 				result = append(result, v)
 			}
