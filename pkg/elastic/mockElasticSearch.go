@@ -2,7 +2,6 @@ package elastic
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -20,22 +19,6 @@ func NewMockedElastisearchProvider() *MockedElasticsearchProvider {
 		App:   map[time.Time][]string{},
 		Infra: map[time.Time][]string{},
 		Audit: map[time.Time][]string{},
-	}
-}
-
-func (m *MockedElasticsearchProvider) PutDataIntoIndex(index string, data []string) error {
-	switch strings.ToLower(index) {
-	case "app":
-		m.App[time.Now()] = data
-		return nil
-	case "infra":
-		m.Infra[time.Now()] = data
-		return nil
-	case "audit":
-		m.Audit[time.Now()] = data
-		return nil
-	default:
-		return errors.New("unknown index")
 	}
 }
 
@@ -57,7 +40,6 @@ func (m *MockedElasticsearchProvider) PutDataAtTime(logTime time.Time, index str
 
 func (m *MockedElasticsearchProvider) FilterLogs(params logs.Parameters) ([]string, error) {
 	lg := make(map[time.Time][]string)
-	fmt.Print("Params: ", params.Index, params.Namespace, params.Podname, params.FinishTime)
 	if len(params.Index) > 0 {
 		switch strings.ToLower(params.Index) {
 		case "app":
