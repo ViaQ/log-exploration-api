@@ -22,8 +22,15 @@ func TestMain(t *testing.T) {
 
 func TestFilterLogs(t *testing.T) {
 	repository := esRepository
-	logList, err := repository.FilterLogs("app", "openshift-kube-scheduler-ip-10-0-157-165.ec2.internal", "openshift-kube-scheduler",
-		"2021-03-17T14:22:20+05:30", "2021-03-17T14:23:20+05:30", "info", "10")
+	params := logs.Parameters{
+		Index:      "app",
+		Level:      "info",
+		FinishTime: "2021-03-17T14:23:20+05:30",
+		StartTime:  "2021-03-17T14:22:20+05:30",
+		Podname:    "openshift-kube-scheduler-ip-10-0-157-165.ec2.internal",
+		Namespace:  "openshift-kube-scheduler",
+	}
+	logList, err := repository.FilterLogs(params)
 	if err != nil {
 		t.Error("Error: ", err)
 	}

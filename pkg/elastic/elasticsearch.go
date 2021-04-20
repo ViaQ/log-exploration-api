@@ -55,55 +55,53 @@ func NewElasticRepository(log *zap.Logger, config *configuration.ElasticsearchCo
 	return repository, nil
 }
 
-func (repository *ElasticRepository) FilterLogs(index string, podname string, namespace string,
-	starttime string, finishtime string, level string, maxlogs string) ([]string, error) {
-
+func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]string, error) {
 	numParameters := 0
 	var queryBuilder []map[string]interface{}
 
-	if len(namespace) > 0 {
+	if len(params.Namespace) > 0 {
 		term := map[string]interface{}{
 			"term": map[string]interface{}{
-				"kubernetes.namespace_name": namespace},
+				"kubernetes.namespace_name": params.Namespace},
 		}
 		queryBuilder = append(queryBuilder, term)
 		numParameters = numParameters + 1
 	}
 
-	if len(podname) > 0 {
+	if len(params.Podname) > 0 {
 
 		term := map[string]interface{}{
 			"term": map[string]interface{}{
-				"kubernetes.pod_name": podname},
+				"kubernetes.pod_name": params.Podname},
 		}
 		queryBuilder = append(queryBuilder, term)
 		numParameters = numParameters + 1
 	}
-	if len(index) > 0 {
+	if len(params.Index) > 0 {
 		term := map[string]interface{}{
 			"term": map[string]interface{}{
-				"_index": index},
+				"_index": params.Index},
 		}
 		queryBuilder = append(queryBuilder, term)
 		numParameters = numParameters + 1
 	}
-	if len(starttime) > 0 && len(finishtime) > 0 {
+	if len(params.StartTime) > 0 && len(params.FinishTime) > 0 {
 
 		timeSubquery := map[string]interface{}{
 			"range": map[string]interface{}{
 				"@timestamp": map[string]interface{}{
-					"gte": starttime,
-					"lte": finishtime,
+					"gte": params.StartTime,
+					"lte": params.FinishTime,
 				},
 			},
 		}
 		queryBuilder = append(queryBuilder, timeSubquery)
 		numParameters = numParameters + 1
 	}
-	if len(level) > 0 {
+	if len(params.Level) > 0 {
 		term := map[string]interface{}{
 			"term": map[string]interface{}{
-				"level": level},
+				"level": params.Level},
 		}
 		queryBuilder = append(queryBuilder, term)
 		numParameters = numParameters + 1
@@ -111,8 +109,8 @@ func (repository *ElasticRepository) FilterLogs(index string, podname string, na
 
 	maxEntries := 1000 //default value in case params.MaxLogs is nil
 
-	if len(maxlogs) > 0 {
-		maxLogs, err := strconv.Atoi(maxlogs)
+	if len(params.MaxLogs) > 0 {
+		maxLogs, err := strconv.Atoi(params.MaxLogs)
 		if err == nil {
 			maxEntries = maxLogs
 		}

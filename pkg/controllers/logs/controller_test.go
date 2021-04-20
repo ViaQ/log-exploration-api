@@ -117,8 +117,7 @@ func Test_ControllerFilterLogs(t *testing.T) {
 			expectedStatus = http.StatusOK
 		case "Filter by time":
 			rr := httptest.NewRecorder()
-			gctx, _ := gin.CreateTestContext(rr)
-			req, err := http.NewRequestWithContext(gctx, http.MethodGet, "/logs/filter", nil)
+			req, err := http.NewRequest(http.MethodGet, "/logs/filter", nil)
 			q := req.URL.Query()
 			q.Add("starttime", "2021-03-17T14:22:20+05:30")
 			q.Add("finishtime", "2021-03-17T14:23:20+05:30")

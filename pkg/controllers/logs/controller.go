@@ -26,15 +26,15 @@ func NewLogsController(log *zap.Logger, logsProvider logs.LogsProvider, router *
 }
 
 func (controller *LogsController) FilterLogs(gctx *gin.Context) {
-	podname := gctx.Request.URL.Query().Get("podname")
-	namespace := gctx.Request.URL.Query().Get("namespace")
-	index := gctx.Request.URL.Query().Get("index")
-	starttime := gctx.Request.URL.Query().Get("starttime")
-	finishtime := gctx.Request.URL.Query().Get("finishtime")
-	level := gctx.Request.URL.Query().Get("level")
-	maxlogs := gctx.Request.URL.Query().Get("maxlogs")
+	var params logs.Parameters
+	err := gctx.Bind(&params)
+	if err != nil {
+		gctx.JSON(http.StatusInternalServerError, gin.H{ //If error is not nil, an internal server error might have ocurred
+			"An error occurred": err,
+		})
+	}
 
-	logsList, err := controller.logsProvider.FilterLogs(index, podname, namespace, starttime, finishtime, level, maxlogs)
+	logsList, err := controller.logsProvider.FilterLogs(params)
 
 	if err != nil {
 		if err.Error() == logs.NotFoundError().Error() { //If error is not nil, and logs are not nil, implies a user error has occurred

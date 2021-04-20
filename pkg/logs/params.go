@@ -1,11 +1,11 @@
 package logs
 
 type Parameters struct {
-	Namespace  string `json:"namespace"`
-	Index      string `json:"index"`
-	Podname    string `json:"podname"`
-	StartTime  string `json:"starttime"`
-	FinishTime string `json:"finishtime"`
-	Level      string `json:"level"`
-	MaxLogs    string `json:"maxlogs"`
+	Namespace  string `form:"namespace"`
+	Index      string `form:"index"`
+	Podname    string `form:"podname"`
+	StartTime  string `form:"starttime"`
+	FinishTime string `form:"finishtime"`
+	Level      string `form:"level"`
+	MaxLogs    string `form:"maxlogs"`
 }
