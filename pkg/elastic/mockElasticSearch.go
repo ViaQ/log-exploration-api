@@ -22,22 +22,6 @@ func NewMockedElastisearchProvider() *MockedElasticsearchProvider {
 	}
 }
 
-func (m *MockedElasticsearchProvider) PutDataIntoIndex(index string, data []string) error {
-	switch strings.ToLower(index) {
-	case "app":
-		m.App[time.Now()] = data
-		return nil
-	case "infra":
-		m.Infra[time.Now()] = data
-		return nil
-	case "audit":
-		m.Audit[time.Now()] = data
-		return nil
-	default:
-		return errors.New("unknown index")
-	}
-}
-
 func (m *MockedElasticsearchProvider) PutDataAtTime(logTime time.Time, index string, data []string) error {
 	switch strings.ToLower(index) {
 	case "app":

@@ -26,25 +26,25 @@ func NewLogsController(log *zap.Logger, logsProvider logs.LogsProvider, router *
 }
 
 func (controller *LogsController) FilterLogs(gctx *gin.Context) {
-
 	var params logs.Parameters
-	err := gctx.BindJSON(&params)
+	err := gctx.Bind(&params)
 	if err != nil {
 		gctx.JSON(http.StatusInternalServerError, gin.H{ //If error is not nil, an internal server error might have ocurred
-			"An error occurred": err,
+			"An error occurred": []string{err.Error()},
 		})
 	}
+
 	logsList, err := controller.logsProvider.FilterLogs(params)
 
 	if err != nil {
 		if err.Error() == logs.NotFoundError().Error() { //If error is not nil, and logs are not nil, implies a user error has occurred
 			gctx.JSON(http.StatusBadRequest, gin.H{
-				"Please check the input parameters": err,
+				"Please check the input parameters": []string{err.Error()},
 			})
 			return
 		} else {
 			gctx.JSON(http.StatusInternalServerError, gin.H{ //If error is not nil and logs are not nil, implies an internal server error might have ocurred
-				"An error occurred": err,
+				"An error occurred": []string{err.Error()},
 			})
 			return
 		}

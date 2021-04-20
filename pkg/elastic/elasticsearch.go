@@ -56,7 +56,6 @@ func NewElasticRepository(log *zap.Logger, config *configuration.ElasticsearchCo
 }
 
 func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]string, error) {
-
 	numParameters := 0
 	var queryBuilder []map[string]interface{}
 
