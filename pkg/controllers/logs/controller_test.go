@@ -119,6 +119,7 @@ func Test_ControllerFilterLogs(t *testing.T) {
 	for _, tt := range tests {
 		t.Log("Running:", tt.TestName)
 		logTime, _ := time.Parse(time.RFC3339Nano, "2021-03-17T14:22:40+05:30")
+		provider.Cleanup()
 		provider.PutDataAtTime(logTime, tt.Index, tt.TestData)
 
 		rr := httptest.NewRecorder()

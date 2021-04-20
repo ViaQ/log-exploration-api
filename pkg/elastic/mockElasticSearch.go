@@ -38,6 +38,12 @@ func (m *MockedElasticsearchProvider) PutDataAtTime(logTime time.Time, index str
 	}
 }
 
+func (m *MockedElasticsearchProvider) Cleanup() {
+	m.App = map[time.Time][]string{}
+	m.Infra = map[time.Time][]string{}
+	m.Audit = map[time.Time][]string{}
+}
+
 func (m *MockedElasticsearchProvider) FilterLogs(params logs.Parameters) ([]string, error) {
 	lg := make(map[time.Time][]string)
 	if len(params.Index) > 0 {
