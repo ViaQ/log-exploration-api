@@ -1,6 +1,7 @@
+CONTAINER_ENGINE?=podman
 EXECUTABLE:=log-exploration-api
 PACKAGE:=github.com/ViaQ/log-exploration-api
-IMAGE_PUSH_REGISTRY:=docker://quay.io/openshift-logging/$(EXECUTABLE)
+IMAGE_PUSH_REGISTRY:=quay.io/openshift-logging/$(EXECUTABLE)
 VERSION:=${shell git describe --tags --always}
 BUILDTIME := ${shell date -u '+%Y-%m-%d_%H:%M:%S'}
 LDFLAGS:= -s -w -X '${PACKAGE}/pkg/version.Version=${VERSION}' \
@@ -22,10 +23,10 @@ clean:
 	rm -rf $(BUILD_DIR)/
 
 image: build
-	docker build . -t ${EXECUTABLE}:${VERSION}
+	$(CONTAINER_ENGINE) build . -t ${IMAGE_PUSH_REGISTRY}:${VERSION}
 
 image-publish: image
-	docker push ${EXECUTABLE}:${VERSION} ${IMAGE_PUSH_REGISTRY}:${VERSION}
+	$(CONTAINER_ENGINE) push ${IMAGE_PUSH_REGISTRY}:${VERSION}
 
 test-e2e:
 	docker-compose up -d
