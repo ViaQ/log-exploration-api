@@ -25,6 +25,8 @@ spec:
           value: /etc/openshift/elasticsearch/secret/admin-cert
         - name: ES_KEY
           value: /etc/openshift/elasticsearch/secret/admin-key
+        - name: ES_TLS
+          value: "true"
         ports:
         - containerPort: 8080
         volumeMounts:
