@@ -26,6 +26,8 @@ func NewLogsController(log *zap.Logger, logsProvider logs.LogsProvider, router *
 }
 
 func (controller *LogsController) FilterLogs(gctx *gin.Context) {
+	gctx.Header("Access-Control-Allow-Origin", "*")
+	gctx.Header("Access-Control-Allow-Headers", "access-control-allow-origin, access-control-allow-headers")
 	var params logs.Parameters
 	err := gctx.Bind(&params)
 	if err != nil {
