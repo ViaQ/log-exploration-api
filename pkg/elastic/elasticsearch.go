@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/ViaQ/log-exploration-api/pkg/configuration"
+	"github.com/ViaQ/log-exploration-api/pkg/constants"
 	"github.com/ViaQ/log-exploration-api/pkg/logs"
 	"github.com/elastic/go-elasticsearch/v7"
 	"go.uber.org/zap"
@@ -152,6 +153,7 @@ func getLogsList(query map[string]interface{}, esClient *elasticsearch.Client, l
 	searchResult, err := esClient.Search(
 		esClient.Search.WithContext(context.Background()),
 		esClient.Search.WithBody(body),
+		esClient.Search.WithIndex(constants.AppIndexName, constants.InfraIndexName, constants.AuditIndexName),
 		esClient.Search.WithTrackTotalHits(true),
 		esClient.Search.WithPretty(),
 	)
