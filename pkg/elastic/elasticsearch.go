@@ -116,6 +116,14 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 			maxEntries = maxLogs
 		}
 	}
+	var sortQuery []map[string]interface{}
+
+	sortSubQuery := map[string]interface{}{
+		"@timestamp": map[string]interface{}{
+			"order": "desc"},
+	}
+
+	sortQuery = append(sortQuery,sortSubQuery)
 
 	query := map[string]interface{}{
 		"query": map[string]interface{}{
@@ -123,7 +131,9 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 				"should":               queryBuilder,
 				"minimum_should_match": numParameters}},
 		"size": maxEntries,
+		"sort":sortQuery,
 	}
+
 
 	logsList, err := getLogsList(query, repository.esClient, repository.log)
 
