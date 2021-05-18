@@ -96,13 +96,9 @@ insert_audit() {
   curl -X POST "localhost:9200/_aliases?pretty" -H 'Content-Type: application/json' -d' { "actions" : [ { "add" : { "index" : "audit-000001", "alias" : "audit" } } ] } '
 }
 populate_es() {
-
-  insert_infra
-
-  insert_app
-
-  insert_audit
-
+    curl -XPUT http://localhost:9200/infra
+    curl -XPUT http://localhost:9200/audit
+    curl -XPUT http://localhost:9200/app
 }
 
 populate_es
