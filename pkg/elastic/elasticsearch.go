@@ -123,17 +123,16 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 			"order": "desc"},
 	}
 
-	sortQuery = append(sortQuery,sortSubQuery)
+	sortQuery = append(sortQuery, sortSubQuery)
 
 	query := map[string]interface{}{
 		"query": map[string]interface{}{
 			"bool": map[string]interface{}{
-				"should":               queryBuilder,
-				"minimum_should_match": numParameters}},
+				"must": queryBuilder,
+			}},
 		"size": maxEntries,
-		"sort":sortQuery,
+		"sort": sortQuery,
 	}
-
 
 	logsList, err := getLogsList(query, repository.esClient, repository.log)
 
@@ -163,7 +162,7 @@ func getLogsList(query map[string]interface{}, esClient *elasticsearch.Client, l
 	searchResult, err := esClient.Search(
 		esClient.Search.WithContext(context.Background()),
 		esClient.Search.WithBody(body),
-		esClient.Search.WithIndex(constants.AppIndexName, constants.InfraIndexName, constants.AuditIndexName),
+		esClient.Search.WithIndex(constants.InfraIndexName, constants.AppIndexName, constants.AuditIndexName),
 		esClient.Search.WithTrackTotalHits(true),
 		esClient.Search.WithPretty(),
 	)
@@ -180,7 +179,6 @@ func getLogsList(query map[string]interface{}, esClient *elasticsearch.Client, l
 		log.Error("Error occurred while decoding JSON", zap.Error(err))
 		return logsList, err
 	}
-
 	if _, ok := result["hits"]; !ok {
 		log.Error("An error occurred while fetching logs", zap.Any("result", result))
 		return logsList, logs.NotFoundError()
