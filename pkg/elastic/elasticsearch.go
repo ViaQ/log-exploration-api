@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ViaQ/log-exploration-api/pkg/configuration"
 	"github.com/ViaQ/log-exploration-api/pkg/constants"
@@ -57,9 +58,7 @@ func NewElasticRepository(log *zap.Logger, config *configuration.ElasticsearchCo
 }
 
 func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]string, error) {
-
 	var queryBuilder []map[string]interface{}
-
 	if len(params.Namespace) > 0 {
 		term := map[string]interface{}{
 			"term": map[string]interface{}{
@@ -67,9 +66,7 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 		}
 		queryBuilder = append(queryBuilder, term)
 	}
-
 	if len(params.Podname) > 0 {
-
 		term := map[string]interface{}{
 			"term": map[string]interface{}{
 				"kubernetes.pod_name": params.Podname},
@@ -84,12 +81,19 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 		queryBuilder = append(queryBuilder, term)
 	}
 	if len(params.StartTime) > 0 && len(params.FinishTime) > 0 {
-
+		startTime, err := time.Parse(time.RFC3339Nano, params.StartTime)
+		if err != nil {
+			return nil, errors.New("incorrect time format: Please Enter Start Time in the following format YYYY-MM-DDTHH:MM:SS[TIMEZONE ex:+00:00]")
+		}
+		finishTime, err := time.Parse(time.RFC3339Nano, params.FinishTime)
+		if err != nil {
+			return nil, errors.New("incorrect time format: Please Enter Start Time in the following format YYYY-MM-DDTHH:MM:SS[TIMEZONE ex:+00:00]")
+		}
 		timeSubquery := map[string]interface{}{
 			"range": map[string]interface{}{
 				"@timestamp": map[string]interface{}{
-					"gte": params.StartTime,
-					"lte": params.FinishTime,
+					"gte": startTime,
+					"lte": finishTime,
 				},
 			},
 		}
@@ -102,24 +106,22 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 		}
 		queryBuilder = append(queryBuilder, term)
 	}
-
 	maxEntries := 1000 //default value in case params.MaxLogs is nil
-
 	if len(params.MaxLogs) > 0 {
 		maxLogs, err := strconv.Atoi(params.MaxLogs)
+		if err != nil || maxLogs < 0 {
+			return nil, errors.New("invalid max logs limit value, please enter a valid integer from 0 to 1000")
+		}
 		if err == nil {
 			maxEntries = maxLogs
 		}
 	}
 	var sortQuery []map[string]interface{}
-
 	sortSubQuery := map[string]interface{}{
 		"@timestamp": map[string]interface{}{
 			"order": "desc"},
 	}
-
 	sortQuery = append(sortQuery, sortSubQuery)
-
 	query := map[string]interface{}{
 		"query": map[string]interface{}{
 			"bool": map[string]interface{}{
@@ -128,13 +130,10 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 		"size": maxEntries,
 		"sort": sortQuery,
 	}
-
 	logsList, err := getLogsList(query, repository.esClient, repository.log)
-
 	if err != nil {
 		return nil, err
 	}
-
 	return logsList, nil
 }
 
@@ -201,6 +200,6 @@ func getRelevantLogs(result map[string]interface{}) []string {
 
 func getError(err error) error {
 	fmt.Println("An error occurred while getting a response: ", err)
-	err = errors.New("An error occurred while fetching logs")
+	err = errors.New("an error occurred while fetching logs")
 	return err
 }

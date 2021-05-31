@@ -20,7 +20,6 @@ func NewLogsController(log *zap.Logger, logsProvider logs.LogsProvider, router *
 	}
 
 	r := router.Group("logs")
-	//please enter time in the following format YYYY-MM-DDTHH:MM:SS[TIMEZONE - +00:00]
 	r.GET("/filter", controller.FilterLogs)
 	return controller
 }
