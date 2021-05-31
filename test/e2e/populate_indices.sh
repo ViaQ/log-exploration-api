@@ -108,7 +108,7 @@ populate_es() {
 populate_es
 
 # To insert data
-NODE_TLS_REJECT_UNAUTHORIZED=0 elasticdump \
+NODE_TLS_REJECT_UNAUTHORIZED=0 ./node_modules/.bin/elasticdump \
     --output=http://localhost:9200 \
     --input=test-logs-mapping.json \
     --type=data
