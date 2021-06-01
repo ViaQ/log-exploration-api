@@ -57,7 +57,7 @@ func NewElasticRepository(log *zap.Logger, config *configuration.ElasticsearchCo
 }
 
 func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]string, error) {
-	numParameters := 0
+
 	var queryBuilder []map[string]interface{}
 
 	if len(params.Namespace) > 0 {
@@ -66,7 +66,6 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 				"kubernetes.namespace_name": params.Namespace},
 		}
 		queryBuilder = append(queryBuilder, term)
-		numParameters = numParameters + 1
 	}
 
 	if len(params.Podname) > 0 {
@@ -76,7 +75,6 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 				"kubernetes.pod_name": params.Podname},
 		}
 		queryBuilder = append(queryBuilder, term)
-		numParameters = numParameters + 1
 	}
 	if len(params.Index) > 0 {
 		term := map[string]interface{}{
@@ -84,7 +82,6 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 				"_index": params.Index},
 		}
 		queryBuilder = append(queryBuilder, term)
-		numParameters = numParameters + 1
 	}
 	if len(params.StartTime) > 0 && len(params.FinishTime) > 0 {
 
@@ -97,7 +94,6 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 			},
 		}
 		queryBuilder = append(queryBuilder, timeSubquery)
-		numParameters = numParameters + 1
 	}
 	if len(params.Level) > 0 {
 		term := map[string]interface{}{
@@ -105,7 +101,6 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 				"level": params.Level},
 		}
 		queryBuilder = append(queryBuilder, term)
-		numParameters = numParameters + 1
 	}
 
 	maxEntries := 1000 //default value in case params.MaxLogs is nil
