@@ -14,7 +14,7 @@ import (
 
 var esRepository logs.LogsProvider
 
-func TestMain(t *testing.T) {
+func TestMain(m *testing.M) {
 	log, _ := initCustomZapLogger("info")
 
 	appConf := configuration.ParseArgs()
