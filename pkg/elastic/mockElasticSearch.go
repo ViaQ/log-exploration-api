@@ -78,7 +78,7 @@ func (m *MockedElasticsearchProvider) FilterLogs(params logs.Parameters) ([]stri
 	}
 
 	result := []string{}
-	temp := []string{}
+	var temp []string
 
 	if len(params.FinishTime) > 0 && len(params.StartTime) > 0 {
 		start, _ := time.Parse(time.RFC3339Nano, params.StartTime)

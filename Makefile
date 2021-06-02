@@ -30,7 +30,7 @@ image-publish: image
 
 test-e2e:
 	docker-compose up -d
-	@sleep 5
+	@sleep 15
 	chmod +x test/e2e/populate_indices.sh
 	test/e2e/populate_indices.sh
 	go test -v test/e2e/*.go
