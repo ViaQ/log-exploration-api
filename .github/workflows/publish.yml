@@ -1,0 +1,31 @@
+name: log-exploration-api publish
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+
+  build:
+    name: api-build
+    runs-on: ubuntu-18.04
+
+    steps:
+    - name: Git Checkout
+      uses: actions/checkout@v2
+
+    - name: Login to Quay.io
+      uses: docker/login-action@v1
+      with:
+        registry: quay.io
+        username: ${{ secrets.QUAY_USERNAME }}
+        password: ${{ secrets.QUAY_ROBOT_TOKEN }}
+
+    - name: Image build
+      run: make image-publish || (docker-compose logs && exit 1)
+      
