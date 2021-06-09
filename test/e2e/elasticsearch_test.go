@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"errors"
+	"os"
 	"strings"
 	"testing"
 
@@ -19,6 +20,7 @@ func TestMain(m *testing.M) {
 
 	appConf := configuration.ParseArgs()
 	esRepository, _ = elastic.NewElasticRepository(log.Named("elasticsearch"), appConf.Elasticsearch)
+	os.Exit(m.Run())
 }
 
 func TestFilterLogs(t *testing.T) {
