@@ -24,7 +24,7 @@ func Test_ControllerFilterLogs(t *testing.T) {
 		Status     int
 	}{
 		{
-			"Filter by no parameters",
+			"Filter by no additional parameters",
 			"app",
 			false,
 			map[string]string{},
@@ -290,7 +290,7 @@ func Test_ControllerFilterLabelLogs(t *testing.T) {
 		Response      map[string][]string
 		Status        int
 	}{{
-		"Filter by container name on no additional query parameters",
+		"Filter label logs",
 		"infra",
 		false,
 		[]string{"app=openshift-kube-scheduler", "revision=8", "scheduler=true"},
@@ -303,7 +303,7 @@ func Test_ControllerFilterLabelLogs(t *testing.T) {
 		200,
 	},
 		{
-			"Filter by time",
+			"Filter by labels and time",
 			"infra",
 			false,
 			[]string{"app=openshift-kube-scheduler", "revision=8", "scheduler=true"},
@@ -412,7 +412,7 @@ func Test_ControllerFilterPodLogs(t *testing.T) {
 		Status     int
 	}{
 		{
-			"Filter by container name on no additional query parameters",
+			"Filter pod logs",
 			"infra",
 			false,
 			map[string]string{"namespace": "openshift-image-registry", "podname": "image-registry-78b76b488f-9lvnn"},
@@ -425,7 +425,7 @@ func Test_ControllerFilterPodLogs(t *testing.T) {
 			200,
 		},
 		{
-			"Filter by logging level on container name",
+			"Filter by logging level",
 			"infra",
 			false,
 			map[string]string{"podname": "openshift-kube-scheduler-ip-10-0-157-165.ec2.internal", "namespace": "openshift-kube-scheduler"},
@@ -539,7 +539,7 @@ func Test_ControllerFilterNamespaceLogs(t *testing.T) {
 		Status     int
 	}{
 		{
-			"Filter by container name on no additional query parameters",
+			"Filter on namespace",
 			"infra",
 			false,
 			map[string]string{"namespace": "openshift-image-registry"},
@@ -552,7 +552,7 @@ func Test_ControllerFilterNamespaceLogs(t *testing.T) {
 			200,
 		},
 		{
-			"Filter by logging level on container name",
+			"Filter by namespace and logging level",
 			"infra",
 			false,
 			map[string]string{"namespace": "openshift-kube-scheduler"},
@@ -562,7 +562,7 @@ func Test_ControllerFilterNamespaceLogs(t *testing.T) {
 			200,
 		},
 		{
-			"Filter by time, and logging level",
+			"Filter by namespace, time, and logging level",
 			"app",
 			false,
 			map[string]string{"namespace": "openshift-kube-scheduler"},
