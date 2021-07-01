@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -57,38 +56,410 @@ func NewElasticRepository(log *zap.Logger, config *configuration.ElasticsearchCo
 	return repository, nil
 }
 
-func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]string, error) {
+func (repository *ElasticRepository) FilterPodLogs(params logs.Parameters) ([]string, error) {
+
+	err := validateParams(params)
+
+	if err != nil {
+		repository.log.Error("Invalid Query Parameters:", zap.Error(err))
+		return nil, err
+	}
+
 	var queryBuilder []map[string]interface{}
+
+	namespaceSubQuery := map[string]interface{}{
+		"term": map[string]interface{}{
+			"kubernetes.pod_name": params.Podname},
+	}
+
+	queryBuilder = append(queryBuilder, namespaceSubQuery)
+
+	if len(params.StartTime) > 0 && len(params.FinishTime) > 0 {
+		startTime, _ := time.Parse(time.RFC3339Nano, params.StartTime)
+		finishTime, _ := time.Parse(time.RFC3339Nano, params.FinishTime)
+
+		timeSubquery := map[string]interface{}{
+			"range": map[string]interface{}{
+				"@timestamp": map[string]interface{}{
+					"gte": startTime,
+					"lte": finishTime,
+				},
+			},
+		}
+		queryBuilder = append(queryBuilder, timeSubquery)
+	}
+
+	if len(params.Level) > 0 {
+		levelSubQuery := map[string]interface{}{
+			"term": map[string]interface{}{
+				"level": params.Level},
+		}
+		queryBuilder = append(queryBuilder, levelSubQuery)
+	}
+
+	maxEntries := 1000 //default value in case params.MaxLogs is nil
+	if len(params.MaxLogs) > 0 {
+		maxLogs, _ := strconv.Atoi(params.MaxLogs)
+		maxEntries = maxLogs
+	}
+
+	var sortQuery []map[string]interface{}
+
+	sortSubQuery := map[string]interface{}{
+		"@timestamp": map[string]interface{}{
+			"order": "desc"},
+	}
+	sortQuery = append(sortQuery, sortSubQuery)
+
+	query := map[string]interface{}{
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
+				"must": queryBuilder,
+			}},
+		"size": maxEntries,
+		"sort": sortQuery,
+	}
+
+	logsList, err := getLogsList(query, repository.esClient, repository.log)
+	if err != nil {
+		return nil, err
+	}
+	return logsList, nil
+
+}
+
+func (repository *ElasticRepository) FilterNamespaceLogs(params logs.Parameters) ([]string, error) {
+
+	err := validateParams(params)
+
+	if err != nil {
+		repository.log.Error("Invalid Query Parameters:", zap.Error(err))
+		return nil, err
+	}
+
+	var queryBuilder []map[string]interface{}
+
+	namespaceSubQuery := map[string]interface{}{
+		"term": map[string]interface{}{
+			"kubernetes.namespace_name": params.Namespace},
+	}
+
+	queryBuilder = append(queryBuilder, namespaceSubQuery)
+
+	if len(params.StartTime) > 0 && len(params.FinishTime) > 0 {
+
+		startTime, _ := time.Parse(time.RFC3339Nano, params.StartTime)
+		finishTime, _ := time.Parse(time.RFC3339Nano, params.FinishTime)
+
+		timeSubquery := map[string]interface{}{
+			"range": map[string]interface{}{
+				"@timestamp": map[string]interface{}{
+					"gte": startTime,
+					"lte": finishTime,
+				},
+			},
+		}
+		queryBuilder = append(queryBuilder, timeSubquery)
+	}
+
+	if len(params.Level) > 0 {
+		levelSubQuery := map[string]interface{}{
+			"term": map[string]interface{}{
+				"level": params.Level},
+		}
+		queryBuilder = append(queryBuilder, levelSubQuery)
+	}
+
+	maxEntries := 1000 //default value in case params.MaxLogs is nil
+	if len(params.MaxLogs) > 0 {
+		maxLogs, _ := strconv.Atoi(params.MaxLogs)
+		maxEntries = maxLogs
+	}
+
+	var sortQuery []map[string]interface{}
+	sortSubQuery := map[string]interface{}{
+		"@timestamp": map[string]interface{}{
+			"order": "desc"},
+	}
+	sortQuery = append(sortQuery, sortSubQuery)
+
+	query := map[string]interface{}{
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
+				"must": queryBuilder,
+			}},
+		"size": maxEntries,
+		"sort": sortQuery,
+	}
+
+	logsList, err := getLogsList(query, repository.esClient, repository.log)
+	if err != nil {
+		return nil, err
+	}
+	return logsList, nil
+
+}
+
+func (repository *ElasticRepository) FilterLabelLogs(params logs.Parameters, labelsList []string) ([]string, error) {
+
+	err := validateParams(params)
+
+	if err != nil {
+		repository.log.Error("Invalid Query Parameters:", zap.Error(err))
+		return nil, err
+	}
+
+	var queryBuilder []map[string]interface{}
+
+	for _, label := range labelsList {
+		labelSubQuery := map[string]interface{}{
+			"match": map[string]interface{}{
+				"kubernetes.flat_labels": map[string]interface{}{
+					"query": label, "operator": "and"}},
+		}
+		queryBuilder = append(queryBuilder, labelSubQuery)
+	}
+
+	if len(params.StartTime) > 0 && len(params.FinishTime) > 0 {
+
+		startTime, _ := time.Parse(time.RFC3339Nano, params.StartTime)
+		finishTime, _ := time.Parse(time.RFC3339Nano, params.FinishTime)
+
+		timeSubquery := map[string]interface{}{
+			"range": map[string]interface{}{
+				"@timestamp": map[string]interface{}{
+					"gte": startTime,
+					"lte": finishTime,
+				},
+			},
+		}
+		queryBuilder = append(queryBuilder, timeSubquery)
+	}
+
+	if len(params.Level) > 0 {
+		levelSubQuery := map[string]interface{}{
+			"term": map[string]interface{}{
+				"level": params.Level},
+		}
+		queryBuilder = append(queryBuilder, levelSubQuery)
+	}
+
+	maxEntries := 1000 //default value in case params.MaxLogs is nil
+	if len(params.MaxLogs) > 0 {
+		maxLogs, _ := strconv.Atoi(params.MaxLogs)
+		maxEntries = maxLogs
+
+	}
+
+	var sortQuery []map[string]interface{}
+	sortSubQuery := map[string]interface{}{
+		"@timestamp": map[string]interface{}{
+			"order": "desc"},
+	}
+	sortQuery = append(sortQuery, sortSubQuery)
+
+	query := map[string]interface{}{
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
+				"must": queryBuilder,
+			}},
+		"size": maxEntries,
+		"sort": sortQuery,
+	}
+	logsList, err := getLogsList(query, repository.esClient, repository.log)
+	if err != nil {
+		return nil, err
+	}
+	return logsList, nil
+
+}
+
+func (repository *ElasticRepository) FilterContainerLogs(params logs.Parameters) ([]string, error) {
+
+	err := validateParams(params)
+
+	if err != nil {
+		repository.log.Error("Invalid Query Parameters:", zap.Error(err))
+		return nil, err
+	}
+
+	var queryBuilder []map[string]interface{}
+
+	namespaceSubQuery := map[string]interface{}{
+		"term": map[string]interface{}{
+			"kubernetes.namespace_name": params.Namespace},
+	}
+	queryBuilder = append(queryBuilder, namespaceSubQuery)
+
+	podQuery := map[string]interface{}{
+		"term": map[string]interface{}{
+			"kubernetes.pod_name": params.Podname},
+	}
+	queryBuilder = append(queryBuilder, podQuery)
+
+	containerNameSubQuery := map[string]interface{}{
+		"term": map[string]interface{}{
+			"kubernetes.container_name.raw": params.ContainerName},
+	}
+
+	queryBuilder = append(queryBuilder, containerNameSubQuery)
+
+	if len(params.StartTime) > 0 && len(params.FinishTime) > 0 {
+
+		startTime, _ := time.Parse(time.RFC3339Nano, params.StartTime)
+		finishTime, _ := time.Parse(time.RFC3339Nano, params.FinishTime)
+
+		timeSubquery := map[string]interface{}{
+			"range": map[string]interface{}{
+				"@timestamp": map[string]interface{}{
+					"gte": startTime,
+					"lte": finishTime,
+				},
+			},
+		}
+		queryBuilder = append(queryBuilder, timeSubquery)
+	}
+
+	if len(params.Level) > 0 {
+		levelSubQuery := map[string]interface{}{
+			"term": map[string]interface{}{
+				"level": params.Level},
+		}
+		queryBuilder = append(queryBuilder, levelSubQuery)
+	}
+
+	maxEntries := 1000 //default value in case params.MaxLogs is nil
+	if len(params.MaxLogs) > 0 {
+		maxLogs, _ := strconv.Atoi(params.MaxLogs)
+		maxEntries = maxLogs
+
+	}
+
+	var sortQuery []map[string]interface{}
+	sortSubQuery := map[string]interface{}{
+		"@timestamp": map[string]interface{}{
+			"order": "desc"},
+	}
+	sortQuery = append(sortQuery, sortSubQuery)
+
+	query := map[string]interface{}{
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
+				"must": queryBuilder,
+			}},
+		"size": maxEntries,
+		"sort": sortQuery,
+	}
+
+	logsList, err := getLogsList(query, repository.esClient, repository.log)
+	if err != nil {
+		return nil, err
+	}
+	return logsList, nil
+
+}
+func (repository *ElasticRepository) Logs(params logs.Parameters) ([]string, error) {
+
+	err := validateParams(params)
+
+	if err != nil {
+		repository.log.Error("Invalid Query Parameters:", zap.Error(err))
+		return nil, err
+	}
+
+	var queryBuilder []map[string]interface{}
+
+	if len(params.StartTime) > 0 && len(params.FinishTime) > 0 {
+
+		startTime, _ := time.Parse(time.RFC3339Nano, params.StartTime)
+		finishTime, _ := time.Parse(time.RFC3339Nano, params.FinishTime)
+
+		timeSubquery := map[string]interface{}{
+			"range": map[string]interface{}{
+				"@timestamp": map[string]interface{}{
+					"gte": startTime,
+					"lte": finishTime,
+				},
+			},
+		}
+		queryBuilder = append(queryBuilder, timeSubquery)
+	}
+
+	if len(params.Level) > 0 {
+		levelSubQuery := map[string]interface{}{
+			"term": map[string]interface{}{
+				"level": params.Level},
+		}
+		queryBuilder = append(queryBuilder, levelSubQuery)
+	}
+
+	maxEntries := 1000 //default value in case params.MaxLogs is nil
+	if len(params.MaxLogs) > 0 {
+		maxLogs, _ := strconv.Atoi(params.MaxLogs)
+		maxEntries = maxLogs
+
+	}
+
+	var sortQuery []map[string]interface{}
+	sortSubQuery := map[string]interface{}{
+		"@timestamp": map[string]interface{}{
+			"order": "desc"},
+	}
+	sortQuery = append(sortQuery, sortSubQuery)
+
+	query := map[string]interface{}{
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
+				"must": queryBuilder,
+			}},
+		"size": maxEntries,
+		"sort": sortQuery,
+	}
+	logsList, err := getLogsList(query, repository.esClient, repository.log)
+	if err != nil {
+		return nil, err
+	}
+	return logsList, nil
+
+}
+
+func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]string, error) {
+
+	err := validateParams(params)
+
+	if err != nil {
+		repository.log.Error("Invalid Query Parameters:", zap.Error(err))
+		return nil, err
+	}
+
+	var queryBuilder []map[string]interface{}
+
 	if len(params.Namespace) > 0 {
-		term := map[string]interface{}{
+		namespaceSubQuery := map[string]interface{}{
 			"term": map[string]interface{}{
 				"kubernetes.namespace_name": params.Namespace},
 		}
-		queryBuilder = append(queryBuilder, term)
+		queryBuilder = append(queryBuilder, namespaceSubQuery)
 	}
 	if len(params.Podname) > 0 {
-		term := map[string]interface{}{
+		podnameSubQuery := map[string]interface{}{
 			"term": map[string]interface{}{
 				"kubernetes.pod_name": params.Podname},
 		}
-		queryBuilder = append(queryBuilder, term)
+		queryBuilder = append(queryBuilder, podnameSubQuery)
 	}
 	if len(params.Index) > 0 {
-		term := map[string]interface{}{
+		indexSubQuery := map[string]interface{}{
 			"term": map[string]interface{}{
 				"_index": params.Index},
 		}
-		queryBuilder = append(queryBuilder, term)
+		queryBuilder = append(queryBuilder, indexSubQuery)
 	}
 	if len(params.StartTime) > 0 && len(params.FinishTime) > 0 {
-		startTime, err := time.Parse(time.RFC3339Nano, params.StartTime)
-		if err != nil {
-			return nil, errors.New("incorrect time format: Please Enter Start Time in the following format YYYY-MM-DDTHH:MM:SS[TIMEZONE ex:+00:00]")
-		}
-		finishTime, err := time.Parse(time.RFC3339Nano, params.FinishTime)
-		if err != nil {
-			return nil, errors.New("incorrect time format: Please Enter Start Time in the following format YYYY-MM-DDTHH:MM:SS[TIMEZONE ex:+00:00]")
-		}
+
+		startTime, _ := time.Parse(time.RFC3339Nano, params.StartTime)
+		finishTime, _ := time.Parse(time.RFC3339Nano, params.FinishTime)
+
 		timeSubquery := map[string]interface{}{
 			"range": map[string]interface{}{
 				"@timestamp": map[string]interface{}{
@@ -100,28 +471,25 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 		queryBuilder = append(queryBuilder, timeSubquery)
 	}
 	if len(params.Level) > 0 {
-		term := map[string]interface{}{
+		levelSubQuery := map[string]interface{}{
 			"term": map[string]interface{}{
 				"level": params.Level},
 		}
-		queryBuilder = append(queryBuilder, term)
+		queryBuilder = append(queryBuilder, levelSubQuery)
 	}
 	maxEntries := 1000 //default value in case params.MaxLogs is nil
 	if len(params.MaxLogs) > 0 {
-		maxLogs, err := strconv.Atoi(params.MaxLogs)
-		if err != nil || maxLogs < 0 {
-			return nil, errors.New("invalid max logs limit value, please enter a valid integer from 0 to 1000")
-		}
-		if err == nil {
-			maxEntries = maxLogs
-		}
+		maxLogs, _ := strconv.Atoi(params.MaxLogs)
+		maxEntries = maxLogs
 	}
+
 	var sortQuery []map[string]interface{}
 	sortSubQuery := map[string]interface{}{
 		"@timestamp": map[string]interface{}{
 			"order": "desc"},
 	}
 	sortQuery = append(sortQuery, sortSubQuery)
+
 	query := map[string]interface{}{
 		"query": map[string]interface{}{
 			"bool": map[string]interface{}{
@@ -130,6 +498,7 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 		"size": maxEntries,
 		"sort": sortQuery,
 	}
+
 	logsList, err := getLogsList(query, repository.esClient, repository.log)
 	if err != nil {
 		return nil, err
@@ -177,6 +546,7 @@ func getLogsList(query map[string]interface{}, esClient *elasticsearch.Client, l
 		log.Error("An error occurred while fetching logs", zap.Any("result", result))
 		return logsList, logs.NotFoundError()
 	}
+
 	logsList = getRelevantLogs(result)
 
 	return logsList, nil
@@ -199,7 +569,7 @@ func getRelevantLogs(result map[string]interface{}) []string {
 }
 
 func getError(err error) error {
-	fmt.Println("An error occurred while getting a response: ", err)
+
 	err = errors.New("an error occurred while fetching logs")
 	return err
 }

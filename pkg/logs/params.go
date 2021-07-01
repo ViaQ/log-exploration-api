@@ -8,4 +8,5 @@ type Parameters struct {
 	FinishTime string `form:"finishtime"`
 	Level      string `form:"level"`
 	MaxLogs    string `form:"maxlogs"`
+	ContainerName string `form:"containername"`
 }

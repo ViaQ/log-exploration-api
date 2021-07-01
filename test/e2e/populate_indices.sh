@@ -11,6 +11,7 @@ insert_infra() {
       "properties": {
         "docker.container_id":{"type":"keyword"},
         "kubernetes.namespace_name": { "type": "keyword" },
+        "kubernetes.container_name":{"type":"text","fields":{"raw":{"type":"keyword"}}},
         "kubernetes.pod_name": { "type": "keyword" },
         "kubernetes.host" : {"type":"keyword"},
         "kubernetes.pod_id" : {"type":"keyword"},
@@ -42,6 +43,7 @@ insert_app() {
       "properties": {
         "docker.container_id":{"type":"keyword"},
         "kubernetes.namespace_name": { "type": "keyword" },
+        "kubernetes.container_name":{"type":"text","fields":{"raw":{"type":"keyword"}}},
         "kubernetes.pod_name": { "type": "keyword" },
         "kubernetes.host" : {"type":"keyword"},
         "kubernetes.pod_id" : {"type":"keyword"},
@@ -73,6 +75,7 @@ insert_audit() {
       "properties": {
         "docker.container_id":{"type":"keyword"},
         "kubernetes.namespace_name": { "type": "keyword" },
+        "kubernetes.container_name":{"type":"text","fields":{"raw":{"type":"keyword"}}},
         "kubernetes.pod_name": { "type": "keyword" },
         "kubernetes.host" : {"type":"keyword"},
         "kubernetes.pod_id" : {"type":"keyword"},
