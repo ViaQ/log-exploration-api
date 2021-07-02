@@ -38,20 +38,20 @@ func initRepository(t *testing.T,tt testStruct) (logs.LogsProvider,logs.Paramete
 	return repository,params
 }
 
-func errorHandler(t *testing.T,tt testStruct,logList []string,err error){
-	if err == nil && tt.TestError != nil {
-		t.Errorf("Expected error is: %v, found %v", tt.TestError, err)
-	} else if err != nil && tt.TestError == nil {
-		t.Errorf("Expected error is: %v, found %v", tt.TestError, err)
-	} else if err != nil && tt.TestError != nil && err.Error() != tt.TestError.Error() {
-		t.Errorf("Expected error is: %v, found %v", tt.TestError, err)
+func errorHandler(t *testing.T,testError,err error,testKeywords,logList []string,testName string){
+	if err == nil && testError != nil {
+		t.Errorf("Expected error is: %v, found %v", testError, err)
+	} else if err != nil && testError == nil {
+		t.Errorf("Expected error is: %v, found %v", testError, err)
+	} else if err != nil && testError != nil && err.Error() != testError.Error() {
+		t.Errorf("Expected error is: %v, found %v", testError, err)
 	} else if logList != nil {
-		if strings.Contains(tt.TestName, "Invalid") || strings.Contains(tt.TestName, "No logs") {
+		if strings.Contains(testName, "Invalid") || strings.Contains(testName, "No logs") {
 			if !strings.Contains(logList[0], "No logs are present or the entry does not exist") {
 				t.Errorf("Expected response: No logs are present or the entry does not exist")
 			}
 		} else {
-			for _, keyword := range tt.TestKeywords {
+			for _, keyword := range testKeywords {
 				if !strings.Contains(logList[0], keyword) {
 					t.Errorf("Invalid logs found!")
 				}
@@ -132,7 +132,7 @@ func TestFilterPodLogs(t *testing.T) {
 	for _, tt := range tests {
 		repository,params := initRepository(t,tt)
 		logList, err := repository.FilterPodLogs(params)
-		errorHandler(t,tt,logList,err)
+		errorHandler(t,tt.TestError,err,tt.TestKeywords,logList,tt.TestName)
 	}
 }
 
@@ -218,29 +218,9 @@ func TestFilterLogsByLabel(t *testing.T) {
 		t.Log("Running:", tt.TestName)
 		repository := esRepository
 		params := logs.Parameters{}
-
 		addParams(&params, tt.TestParams)
-
 		logList, err := repository.FilterLabelLogs(params, tt.LabelList)
-		if err == nil && tt.TestError != nil {
-			t.Errorf("Expected error is: %v, found %v", tt.TestError, err)
-		} else if err != nil && tt.TestError == nil {
-			t.Errorf("Expected error is: %v, found %v", tt.TestError, err)
-		} else if err != nil && tt.TestError != nil && err.Error() != tt.TestError.Error() {
-			t.Errorf("Expected error is: %v, found %v", tt.TestError, err)
-		} else if logList != nil {
-			if strings.Contains(tt.TestName, "Invalid") || strings.Contains(tt.TestName, "No logs") {
-				if !strings.Contains(logList[0], "No logs are present or the entry does not exist") {
-					t.Errorf("Expected response: No logs are present or the entry does not exist")
-				}
-			} else {
-				for _, keyword := range tt.TestKeywords {
-					if !strings.Contains(logList[0], keyword) {
-						t.Errorf("Invalid logs found!")
-					}
-				}
-			}
-		}
+		errorHandler(t,tt.TestError,err,tt.TestKeywords,logList,tt.TestName)
 	}
 }
 
@@ -310,7 +290,7 @@ func TestFilterNamespaceLogs(t *testing.T) {
 	for _, tt := range tests {
 		repository,params := initRepository(t,tt)
 		logList, err := repository.FilterNamespaceLogs(params)
-		errorHandler(t,tt,logList,err)
+		errorHandler(t,tt.TestError,err,tt.TestKeywords,logList,tt.TestName)
 	}
 }
 
@@ -387,7 +367,7 @@ func TestFilterContainerLogs(t *testing.T) {
 	for _, tt := range tests {
 		repository,params := initRepository(t,tt)
 		logList, err := repository.FilterContainerLogs(params)
-		errorHandler(t,tt,logList,err)
+		errorHandler(t,tt.TestError,err,tt.TestKeywords,logList,tt.TestName)
 	}
 
 }
@@ -475,32 +455,10 @@ func TestFilterLogs(t *testing.T) {
 			[]string{},
 		},
 	}
-
 	for _, tt := range tests {
-		t.Log("Running:", tt.TestName)
-		repository := esRepository
-		params := logs.Parameters{}
-		addParams(&params, tt.TestParams)
+		repository,params := initRepository(t,tt)
 		logList, err := repository.FilterLogs(params)
-		if err == nil && tt.TestError != nil {
-			t.Errorf("Expected error is: %v, found %v", tt.TestError, err)
-		} else if err != nil && tt.TestError == nil {
-			t.Errorf("Expected error is: %v, found %v", tt.TestError, err)
-		} else if err != nil && tt.TestError != nil && err.Error() != tt.TestError.Error() {
-			t.Errorf("Expected error is: %v, found %v", tt.TestError, err)
-		} else if logList != nil {
-			if strings.Contains(tt.TestName, "Invalid") || strings.Contains(tt.TestName, "No logs") {
-				if !strings.Contains(logList[0], "No logs are present or the entry does not exist") {
-					t.Errorf("Expected response: No logs are present or the entry does not exist")
-				}
-			} else {
-				for _, keyword := range tt.TestKeywords {
-					if !strings.Contains(logList[0], keyword) {
-						t.Errorf("Invalid logs found!")
-					}
-				}
-			}
-		}
+		errorHandler(t,tt.TestError,err,tt.TestKeywords,logList,tt.TestName)
 	}
 }
 
@@ -564,7 +522,7 @@ func TestLogs(t *testing.T) {
 	for _, tt := range tests {
 		repository,params := initRepository(t,tt)
 		logList, err := repository.Logs(params)
-		errorHandler(t,tt,logList,err)
+		errorHandler(t,tt.TestError,err,tt.TestKeywords,logList,tt.TestName)
 	}
 }
 func addParams(params *logs.Parameters, testParams map[string]string) {
