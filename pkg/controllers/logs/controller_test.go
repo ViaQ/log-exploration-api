@@ -198,6 +198,19 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 			200,
 		},
 		{
+			"Filter by time",
+			"app",
+			false,
+			map[string]string{"containername": "openshift", "namespace": "openshift-kube-scheduler", "podname": "openshift-kube-scheduler-ip-10-0-157-165.ec2.internal"},
+			map[string]string{
+				"starttime":  "2021-03-17T14:22:20+05:30",
+				"finishtime": "2021-03-17T14:23:20+05:30",
+			},
+			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift"},
+			map[string][]string{"Logs": {"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift"}},
+			200,
+		},
+		{
 			"Filter by time, and logging level",
 			"app",
 			false,
