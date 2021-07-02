@@ -12,14 +12,13 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-
 var esRepository logs.LogsProvider
 
 func TestMain(m *testing.M) {
 	log, _ := initCustomZapLogger("info")
 
 	appConf := configuration.ParseArgs()
-	esRepository,_ = elastic.NewElasticRepository(log.Named("elasticsearch"), appConf.Elasticsearch)
+	esRepository, _ = elastic.NewElasticRepository(log.Named("elasticsearch"), appConf.Elasticsearch)
 	os.Exit(m.Run())
 }
 
@@ -35,14 +34,14 @@ func TestFilterPodLogs(t *testing.T) {
 		{
 			"Filter Pod Logs",
 			false,
-			map[string]string{"Podname":"openshift-kube-scheduler-ip-10-0-157-165.ec2.internal"},
+			map[string]string{"Podname": "openshift-kube-scheduler-ip-10-0-157-165.ec2.internal"},
 			nil,
 			[]string{"openshift-kube-scheduler-ip-10-0-157-165.ec2.internal"},
 		},
 		{
 			"Filter Pod logs in a given time range",
 			false,
-			map[string]string{"StartTime": "2021-03-18T06:41:51.83503Z", "FinishTime": "2021-03-18T06:41:51.83503Z","Podname":"openshift-kube-scheduler-ip-10-0-157-165.ec2.internal"},
+			map[string]string{"StartTime": "2021-03-18T06:41:51.83503Z", "FinishTime": "2021-03-18T06:41:51.83503Z", "Podname": "openshift-kube-scheduler-ip-10-0-157-165.ec2.internal"},
 			nil,
 			[]string{"timestamp", "2021-03-18T06:41:51"},
 		},
@@ -51,7 +50,7 @@ func TestFilterPodLogs(t *testing.T) {
 			false,
 			map[string]string{
 				"Podname": "openshift-kube-scheduler-ip-10-0-157-165.ec2.internal",
-				"level": "unknown",
+				"level":   "unknown",
 			},
 			nil,
 			[]string{"infra-000001", "openshift-kube-scheduler-ip-10-0-157-165.ec2.internal", "unknown"},
@@ -60,7 +59,7 @@ func TestFilterPodLogs(t *testing.T) {
 			"Invalid Podname, or Podname for which no logs exist",
 			false,
 			map[string]string{
-				"Podname":   "hello",
+				"Podname": "hello",
 			},
 			nil,
 			[]string{},
@@ -79,7 +78,7 @@ func TestFilterPodLogs(t *testing.T) {
 			"No logs in the given time interval for a particular pod",
 			false,
 			map[string]string{
-				"Podname":"openshift-kube-scheduler-ip-10-0-157-165.ec2.internal",
+				"Podname":    "openshift-kube-scheduler-ip-10-0-157-165.ec2.internal",
 				"StartTime":  "2022-03-17T14:22:20+05:30",
 				"FinishTime": "2022-03-17T14:23:20+05:30",
 			},
@@ -90,7 +89,7 @@ func TestFilterPodLogs(t *testing.T) {
 			"Negative Limit value",
 			false,
 			map[string]string{
-				"Maxlogs":  "-2",
+				"Maxlogs": "-2",
 			},
 			logs.InvalidLimit(),
 			[]string{},
@@ -102,7 +101,7 @@ func TestFilterPodLogs(t *testing.T) {
 		repository := esRepository
 		params := logs.Parameters{}
 
-		addParams(&params,tt.TestParams)
+		addParams(&params, tt.TestParams)
 
 		logList, err := repository.FilterPodLogs(params)
 		if err == nil && tt.TestError != nil {
@@ -132,7 +131,7 @@ func TestFilterLogsByLabel(t *testing.T) {
 	tests := []struct {
 		TestName     string
 		ShouldFail   bool
-		LabelList []string
+		LabelList    []string
 		TestParams   map[string]string
 		TestError    error
 		TestKeywords []string
@@ -140,42 +139,41 @@ func TestFilterLogsByLabel(t *testing.T) {
 		{
 			"Filter Logs for a set of labels",
 			false,
-			[]string{"app=openshift-kube-scheduler","revision=8","scheduler=true"},
+			[]string{"app=openshift-kube-scheduler", "revision=8", "scheduler=true"},
 			map[string]string{},
 			nil,
-			[]string{"app=openshift-kube-scheduler","revision=8","scheduler=true"},
+			[]string{"app=openshift-kube-scheduler", "revision=8", "scheduler=true"},
 		},
 		{
 			"Filter Logs for a set of labels in a given time range",
 			false,
-			[]string{"app=openshift-kube-scheduler","revision=8","scheduler=true"},
+			[]string{"app=openshift-kube-scheduler", "revision=8", "scheduler=true"},
 			map[string]string{"StartTime": "2021-03-18T06:41:51.83503Z", "FinishTime": "2021-03-18T06:41:51.83503Z"},
 			nil,
-			[]string{"timestamp", "2021-03-18T06:41:51.835","app=openshift-kube-scheduler","revision=8","scheduler=true"},
+			[]string{"timestamp", "2021-03-18T06:41:51.835", "app=openshift-kube-scheduler", "revision=8", "scheduler=true"},
 		},
 		{
 			"Filter logs by Labels, and Logging level",
 			false,
-			[]string{"app=openshift-kube-scheduler","revision=8","scheduler=true"},
+			[]string{"app=openshift-kube-scheduler", "revision=8", "scheduler=true"},
 			map[string]string{
 				"level": "unknown",
 			},
 			nil,
-			[]string{"app=openshift-kube-scheduler","revision=8","scheduler=true","unknown"},
+			[]string{"app=openshift-kube-scheduler", "revision=8", "scheduler=true", "unknown"},
 		},
 		{
 			"Invalid Labels, or Labels for which no logs exist",
 			false,
 			[]string{"app=dummy"},
-			map[string]string{
-			},
+			map[string]string{},
 			nil,
 			[]string{},
 		},
 		{
 			"Invalid timestamp",
 			false,
-			[]string{"app=openshift-kube-scheduler","revision=8"},
+			[]string{"app=openshift-kube-scheduler", "revision=8"},
 			map[string]string{
 				"StartTime":  "hey",
 				"FinishTime": "hey",
@@ -186,7 +184,7 @@ func TestFilterLogsByLabel(t *testing.T) {
 		{
 			"No logs in the given time interval for a set of labels",
 			false,
-			[]string{"app=openshift-kube-scheduler","revision=8","scheduler=true"},
+			[]string{"app=openshift-kube-scheduler", "revision=8", "scheduler=true"},
 			map[string]string{
 				"StartTime":  "2022-03-17T14:22:20Z",
 				"FinishTime": "2022-03-17T14:23:20Z",
@@ -199,7 +197,7 @@ func TestFilterLogsByLabel(t *testing.T) {
 			false,
 			[]string{},
 			map[string]string{
-				"Maxlogs":  "-2",
+				"Maxlogs": "-2",
 			},
 			logs.InvalidLimit(),
 			[]string{},
@@ -211,9 +209,9 @@ func TestFilterLogsByLabel(t *testing.T) {
 		repository := esRepository
 		params := logs.Parameters{}
 
-		addParams(&params,tt.TestParams)
+		addParams(&params, tt.TestParams)
 
-		logList, err := repository.FilterLabelLogs(params,tt.LabelList)
+		logList, err := repository.FilterLabelLogs(params, tt.LabelList)
 		if err == nil && tt.TestError != nil {
 			t.Errorf("Expected error is: %v, found %v", tt.TestError, err)
 		} else if err != nil && tt.TestError == nil {
@@ -247,7 +245,7 @@ func TestFilterNamespaceLogs(t *testing.T) {
 		{
 			"Filter by namespace",
 			false,
-			map[string]string{"Namespace":"openshift-kube-scheduler"},
+			map[string]string{"Namespace": "openshift-kube-scheduler"},
 			nil,
 			[]string{"openshift-kube-scheduler"},
 		},
@@ -275,7 +273,7 @@ func TestFilterNamespaceLogs(t *testing.T) {
 			"Invalid timestamp",
 			false,
 			map[string]string{
-				"Namespace":"openshift-kube-scheduler",
+				"Namespace":  "openshift-kube-scheduler",
 				"StartTime":  "hey",
 				"FinishTime": "hey",
 			},
@@ -286,7 +284,7 @@ func TestFilterNamespaceLogs(t *testing.T) {
 			"No logs in the given time interval for a namespace",
 			false,
 			map[string]string{
-				"Namespace":"openshift-kube-scheduler",
+				"Namespace":  "openshift-kube-scheduler",
 				"StartTime":  "2022-03-17T14:22:20Z",
 				"FinishTime": "2022-03-17T14:23:20Z",
 			},
@@ -297,8 +295,8 @@ func TestFilterNamespaceLogs(t *testing.T) {
 			"Negative maxlogs - Incorrect Limit Parameter",
 			false,
 			map[string]string{
-				"Namespace":"openshift-kube-scheduler",
-				"Maxlogs":  "-2",
+				"Namespace": "openshift-kube-scheduler",
+				"Maxlogs":   "-2",
 			},
 			logs.InvalidLimit(),
 			[]string{},
@@ -309,7 +307,7 @@ func TestFilterNamespaceLogs(t *testing.T) {
 		t.Log("Running:", tt.TestName)
 		repository := esRepository
 		params := logs.Parameters{}
-		addParams(&params,tt.TestParams)
+		addParams(&params, tt.TestParams)
 
 		logList, err := repository.FilterNamespaceLogs(params)
 
@@ -346,19 +344,19 @@ func TestFilterContainerLogs(t *testing.T) {
 		{
 			"Filter, and Fetch logs for a container in a pod for a given namespace",
 			false,
-			map[string]string{"ContainerName":"kube-scheduler-cert-syncer","Namespace":"openshift-kube-scheduler","Podname":"openshift-kube-scheduler-ip-10-0-162-9.ec2.internal"},
+			map[string]string{"ContainerName": "kube-scheduler-cert-syncer", "Namespace": "openshift-kube-scheduler", "Podname": "openshift-kube-scheduler-ip-10-0-162-9.ec2.internal"},
 			nil,
-			[]string{"kube-scheduler-cert-syncer","openshift-kube-scheduler"},
+			[]string{"kube-scheduler-cert-syncer", "openshift-kube-scheduler"},
 		},
 		{
 			"Filter container logs in a given time range",
 			false,
 			map[string]string{
-				"ContainerName":    "kube-scheduler-cert-syncer",
-				"Podname":"openshift-kube-scheduler-ip-10-0-162-9.ec2.internal",
-				"Namespace":  "openshift-kube-scheduler",
-				"StartTime":  "2021-03-18T06:41:15.54171Z",
-				"FinishTime": "2021-03-18T06:41:18.54171Z",
+				"ContainerName": "kube-scheduler-cert-syncer",
+				"Podname":       "openshift-kube-scheduler-ip-10-0-162-9.ec2.internal",
+				"Namespace":     "openshift-kube-scheduler",
+				"StartTime":     "2021-03-18T06:41:15.54171Z",
+				"FinishTime":    "2021-03-18T06:41:18.54171Z",
 			},
 			nil,
 			[]string{"openshift-kube-scheduler", "kube-scheduler-cert-syncer", "2021-03-18T06:41"},
@@ -367,9 +365,9 @@ func TestFilterContainerLogs(t *testing.T) {
 			"Invalid namespace and container",
 			false,
 			map[string]string{
-				"ContainerName":   "hello",
-				"Namespace": "world",
-				"Podname":"openshift-kube-scheduler-ip-10-0-162-9.ec2.internal",
+				"ContainerName": "hello",
+				"Namespace":     "world",
+				"Podname":       "openshift-kube-scheduler-ip-10-0-162-9.ec2.internal",
 			},
 			nil,
 			[]string{},
@@ -378,11 +376,11 @@ func TestFilterContainerLogs(t *testing.T) {
 			"Invalid timestamp",
 			false,
 			map[string]string{
-				"Namespace":"openshift-kube-scheduler",
-				"Podname":"openshift-kube-scheduler-ip-10-0-162-9.ec2.internal",
-				"ContainerName":"kube-scheduler-cert-syncer",
-				"StartTime":  "hey",
-				"FinishTime": "hey",
+				"Namespace":     "openshift-kube-scheduler",
+				"Podname":       "openshift-kube-scheduler-ip-10-0-162-9.ec2.internal",
+				"ContainerName": "kube-scheduler-cert-syncer",
+				"StartTime":     "hey",
+				"FinishTime":    "hey",
 			},
 			logs.InvalidTimeStamp(),
 			[]string{},
@@ -391,11 +389,11 @@ func TestFilterContainerLogs(t *testing.T) {
 			"No logs in the given time interval",
 			false,
 			map[string]string{
-				"Namespace":"openshift-image-registry",
-				"Podname":"image-registry-78b76b488f-bzgqz",
-				"ContainerName":"registry",
-				"StartTime":  "2022-03-17T14:22:20Z",
-				"FinishTime": "2022-03-17T14:23:20Z",
+				"Namespace":     "openshift-image-registry",
+				"Podname":       "image-registry-78b76b488f-bzgqz",
+				"ContainerName": "registry",
+				"StartTime":     "2022-03-17T14:22:20Z",
+				"FinishTime":    "2022-03-17T14:23:20Z",
 			},
 			nil,
 			[]string{},
@@ -404,7 +402,7 @@ func TestFilterContainerLogs(t *testing.T) {
 			"Negative maxlogs",
 			false,
 			map[string]string{
-				"Maxlogs":  "-2",
+				"Maxlogs": "-2",
 			},
 			logs.InvalidLimit(),
 			[]string{},
@@ -415,7 +413,7 @@ func TestFilterContainerLogs(t *testing.T) {
 		t.Log("Running:", tt.TestName)
 		repository := esRepository
 		params := logs.Parameters{}
-		addParams(&params,tt.TestParams)
+		addParams(&params, tt.TestParams)
 		logList, err := repository.FilterContainerLogs(params)
 		if err == nil && tt.TestError != nil {
 			t.Errorf("Expected error is: %v, found: %v", tt.TestError, err)
@@ -524,7 +522,7 @@ func TestFilterLogs(t *testing.T) {
 			"Negative maxlogs",
 			false,
 			map[string]string{
-				"Maxlogs":  "-2",
+				"Maxlogs": "-2",
 			},
 			logs.InvalidLimit(),
 			[]string{},
@@ -535,7 +533,7 @@ func TestFilterLogs(t *testing.T) {
 		t.Log("Running:", tt.TestName)
 		repository := esRepository
 		params := logs.Parameters{}
-		addParams(&params,tt.TestParams)
+		addParams(&params, tt.TestParams)
 		logList, err := repository.FilterLogs(params)
 		if err == nil && tt.TestError != nil {
 			t.Errorf("Expected error is: %v, found %v", tt.TestError, err)
@@ -585,8 +583,8 @@ func TestLogs(t *testing.T) {
 			"Filter by Logging level, limitting number of logs to 10",
 			false,
 			map[string]string{
-				"Level":"unknown",
-				"Maxlogs":"10",
+				"Level":   "unknown",
+				"Maxlogs": "10",
 			},
 			nil,
 			[]string{"unknown"},
@@ -615,7 +613,7 @@ func TestLogs(t *testing.T) {
 			"Negative maxlogs",
 			false,
 			map[string]string{
-				"Maxlogs":  "-2",
+				"Maxlogs": "-2",
 			},
 			logs.InvalidLimit(),
 			[]string{},
@@ -626,7 +624,7 @@ func TestLogs(t *testing.T) {
 		t.Log("Running:", tt.TestName)
 		repository := esRepository
 		params := logs.Parameters{}
-		addParams(&params,tt.TestParams)
+		addParams(&params, tt.TestParams)
 		logList, err := repository.FilterLogs(params)
 		if err == nil && tt.TestError != nil {
 			t.Errorf("Expected error is: %v, found %v", tt.TestError, err)
@@ -671,7 +669,6 @@ func addParams(params *logs.Parameters, testParams map[string]string) {
 		}
 	}
 }
-
 
 func initCustomZapLogger(level string) (*zap.Logger, error) {
 	lv := zap.AtomicLevel{}
