@@ -122,7 +122,7 @@ check_elasticdump(){
 
   if ! [ -x "$(command -v elasticdump)" ]; then
     echo "Error: Elasticdump Not Found."
-    docker-compose down -v
+    podman stop elasticsearch || true && podman rm elasticsearch || true
     exit 1
   fi
   populate_es

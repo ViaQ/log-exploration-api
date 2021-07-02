@@ -21,6 +21,12 @@ func NewMockedElastisearchProvider() *MockedElasticsearchProvider {
 		Audit: map[time.Time][]string{},
 	}
 }
+const(
+	Level = "level: "
+	containerName = "container_name: "
+	podName = "pod_name: "
+	namespaceName = "namespace_name: "
+)
 
 func (m *MockedElasticsearchProvider) PutDataAtTime(logTime time.Time, index string, data []string) error {
 	switch strings.ToLower(index) {
@@ -44,60 +50,77 @@ func (m *MockedElasticsearchProvider) Cleanup() {
 	m.Audit = map[time.Time][]string{}
 }
 
-func (m *MockedElasticsearchProvider) Logs(params logs.Parameters) ([]string, error) {
-
-	logsLists := make(map[time.Time][]string)
-
-	for k, v := range m.App {
-		if v != nil {
-			logsLists[k] = v
+func mockedFilterHelper(params logs.Parameters, m *MockedElasticsearchProvider)([]string,error){
+	lg:=make(map[time.Time][]string)
+	if len(params.Index)>0{
+		switch strings.ToLower(params.Index){
+		case "app":
+			lg = m.App
+		case "infra":
+			lg = m.Infra
+		case "audit":
+			lg = m.Audit
+		}
+	} else {
+		for k, v := range m.App {
+			if v != nil {
+				lg[k] = v
+			}
+		}
+		for k, v := range m.Infra {
+			if v != nil {
+				lg[k] = v
+			}
+		}
+		for k, v := range m.Audit {
+			if v != nil {
+				lg[k] = v
+			}
 		}
 	}
-	for k, v := range m.Infra {
-		if v != nil {
-			logsLists[k] = v
-		}
-	}
-	for k, v := range m.Audit {
-		if v != nil {
-			logsLists[k] = v
-		}
-	}
-
-	if len(logsLists) == 0 {
+	if len(lg)==0 {
 		return nil, logs.NotFoundError()
 	}
-
-	resultantLogs := []string{}
-	var tempLogsStore []string
-
+	var result []string
 	if len(params.FinishTime) > 0 && len(params.StartTime) > 0 {
 		start, _ := time.Parse(time.RFC3339Nano, params.StartTime)
 		finish, _ := time.Parse(time.RFC3339Nano, params.FinishTime)
-		for k, v := range logsLists {
+		for k, v := range lg {
 			if k.After(start) && k.Before(finish) {
-				resultantLogs = append(resultantLogs, v...)
+				result = append(result, v...)
 			}
 		}
 	} else {
-		for _, v := range logsLists {
-			resultantLogs = append(resultantLogs, v...)
+		for _, v := range lg {
+			result = append(result, v...)
 		}
 	}
+	if len(result)>0{
+		return result,nil
+	} else{
+		return nil,logs.NotFoundError()
+	}
+}
 
+func generateIntermediateLogs(typeOfLog string,parameter string,logs []string) []string{
+	var resultantLogs []string
+	for _, v := range logs {
+		str := typeOfLog + parameter
+		if strings.Contains(v, str) {
+			resultantLogs = append(resultantLogs, v)
+		}
+	}
+	return resultantLogs
+}
+
+func (m *MockedElasticsearchProvider) Logs(params logs.Parameters) ([]string, error) {
+	resultantLogs,err := mockedFilterHelper(params,m)
+	if err!=nil{
+		return nil,logs.NotFoundError()
+	}
 	if len(params.Level) > 0 {
-
-		tempLogsStore = resultantLogs
-		resultantLogs = []string{}
-
-		for _, v := range tempLogsStore {
-			level := "level: " + params.Level
-			if strings.Contains(v, level) {
-				resultantLogs = append(resultantLogs, v)
-			}
-		}
+		resultantLogs = generateIntermediateLogs(Level,params.Level,resultantLogs)
 	}
-
 	if len(resultantLogs) == 0 {
 		return nil, logs.NotFoundError()
 	}
@@ -106,58 +129,11 @@ func (m *MockedElasticsearchProvider) Logs(params logs.Parameters) ([]string, er
 
 func (m *MockedElasticsearchProvider) FilterLogs(params logs.Parameters) ([]string, error) {
 
-	logsLists := make(map[time.Time][]string)
-
-	if len(params.Index) > 0 {
-		switch strings.ToLower(params.Index) {
-		case "app":
-			logsLists = m.App
-		case "infra":
-			logsLists = m.Infra
-		case "audit":
-			logsLists = m.Audit
-		}
-	} else {
-		for k, v := range m.App {
-			if v != nil {
-				logsLists[k] = v
-			}
-		}
-		for k, v := range m.Infra {
-			if v != nil {
-				logsLists[k] = v
-			}
-		}
-		for k, v := range m.Audit {
-			if v != nil {
-				logsLists[k] = v
-			}
-		}
+	tempLogsStore,err := mockedFilterHelper(params,m)
+	var resultantLogs []string
+	if err!=nil{
+		return nil,logs.NotFoundError()
 	}
-
-	if len(logsLists) == 0 {
-		return nil, logs.NotFoundError()
-	}
-
-	resultantLogs := []string{}
-	var tempLogsStore []string
-
-	if len(params.FinishTime) > 0 && len(params.StartTime) > 0 {
-		start, _ := time.Parse(time.RFC3339Nano, params.StartTime)
-		finish, _ := time.Parse(time.RFC3339Nano, params.FinishTime)
-		for k, v := range logsLists {
-			if k.After(start) && k.Before(finish) {
-				resultantLogs = append(resultantLogs, v...)
-			}
-		}
-	} else {
-		for _, v := range logsLists {
-			resultantLogs = append(resultantLogs, v...)
-		}
-	}
-
-	tempLogsStore = resultantLogs
-	resultantLogs = []string{}
 	if len(params.Podname) > 0 {
 		for _, v := range tempLogsStore {
 			pod := "pod_name: " + params.Podname
@@ -185,91 +161,16 @@ func (m *MockedElasticsearchProvider) FilterLogs(params logs.Parameters) ([]stri
 	return resultantLogs, nil
 }
 func (m *MockedElasticsearchProvider) FilterContainerLogs(params logs.Parameters) ([]string, error) {
-
-	logsLists := make(map[time.Time][]string)
-
-	for k, v := range m.App {
-		if v != nil {
-			logsLists[k] = v
-		}
+	resultantLogs,err := mockedFilterHelper(params,m)
+	if err!=nil{
+		return nil,logs.NotFoundError()
 	}
-	for k, v := range m.Infra {
-		if v != nil {
-			logsLists[k] = v
-		}
-	}
-	for k, v := range m.Audit {
-		if v != nil {
-			logsLists[k] = v
-		}
-	}
-
-	if len(logsLists) == 0 {
-		return nil, logs.NotFoundError()
-	}
-
-	resultantLogs := []string{}
-	var tempLogsStore []string
-
-	if len(params.FinishTime) > 0 && len(params.StartTime) > 0 {
-		start, _ := time.Parse(time.RFC3339Nano, params.StartTime)
-		finish, _ := time.Parse(time.RFC3339Nano, params.FinishTime)
-		for k, v := range logsLists {
-			if k.After(start) && k.Before(finish) {
-				resultantLogs = append(resultantLogs, v...)
-			}
-		}
-	} else {
-		for _, v := range logsLists {
-			resultantLogs = append(resultantLogs, v...)
-		}
-	}
-
-	tempLogsStore = resultantLogs
-	resultantLogs = []string{}
-
-	for _, v := range tempLogsStore {
-		ns := "namespace_name: " + params.Namespace
-		if strings.Contains(v, ns) {
-			resultantLogs = append(resultantLogs, v)
-		}
-	}
-
-	tempLogsStore = resultantLogs
-	resultantLogs = []string{}
-
-	for _, v := range tempLogsStore {
-		containerName := "container_name: " + params.ContainerName
-		if strings.Contains(v, containerName) {
-			resultantLogs = append(resultantLogs, v)
-		}
-	}
-
-	tempLogsStore = resultantLogs
-	resultantLogs = []string{}
-
-	for _, v := range tempLogsStore {
-		podName := "pod_name: " + params.Podname
-		if strings.Contains(v, podName) {
-			resultantLogs = append(resultantLogs, v)
-		}
-	}
-
-	tempLogsStore = resultantLogs
-	resultantLogs = []string{}
-
+	resultantLogs = generateIntermediateLogs(namespaceName,params.Namespace,resultantLogs)
+	resultantLogs = generateIntermediateLogs(podName,params.Podname,resultantLogs)
+	resultantLogs = generateIntermediateLogs(containerName,params.ContainerName,resultantLogs)
 	if len(params.Level) > 0 {
-		for _, v := range tempLogsStore {
-			level := "level: " + params.Level
-			if strings.Contains(v, level) {
-				resultantLogs = append(resultantLogs, v)
-			}
-		}
-		tempLogsStore = resultantLogs
+		resultantLogs = generateIntermediateLogs(Level,params.Level,resultantLogs)
 	}
-
-	resultantLogs = tempLogsStore
-
 	if len(resultantLogs) == 0 {
 		return nil, logs.NotFoundError()
 	}
@@ -277,61 +178,12 @@ func (m *MockedElasticsearchProvider) FilterContainerLogs(params logs.Parameters
 }
 
 func (m *MockedElasticsearchProvider) FilterLabelLogs(params logs.Parameters, labelList []string) ([]string, error) {
-
-	logsLists := make(map[time.Time][]string)
-
-	for k, v := range m.App {
-		if v != nil {
-			logsLists[k] = v
-		}
+	resultantLogs,err := mockedFilterHelper(params,m)
+	if err!=nil{
+		return nil,logs.NotFoundError()
 	}
-	for k, v := range m.Infra {
-		if v != nil {
-			logsLists[k] = v
-		}
-	}
-	for k, v := range m.Audit {
-		if v != nil {
-			logsLists[k] = v
-		}
-	}
-
-	if len(logsLists) == 0 {
-		return nil, logs.NotFoundError()
-	}
-
-	resultantLogs := []string{}
-	var tempLogsStore []string
-
-	if len(params.FinishTime) > 0 && len(params.StartTime) > 0 {
-		start, _ := time.Parse(time.RFC3339Nano, params.StartTime)
-		finish, _ := time.Parse(time.RFC3339Nano, params.FinishTime)
-		for k, v := range logsLists {
-			if k.After(start) && k.Before(finish) {
-				resultantLogs = append(resultantLogs, v...)
-			}
-		}
-	} else {
-		for _, v := range logsLists {
-			resultantLogs = append(resultantLogs, v...)
-		}
-	}
-
-	if len(params.Level) > 0 {
-
-		tempLogsStore = resultantLogs
-		resultantLogs = []string{}
-
-		for _, v := range tempLogsStore {
-			level := "level: " + params.Level
-			if strings.Contains(v, level) {
-				resultantLogs = append(resultantLogs, v)
-			}
-		}
-	}
-
 	for _, label := range labelList {
-		tempLogsStore = resultantLogs
+		tempLogsStore := resultantLogs
 		resultantLogs = []string{}
 		for _, v := range tempLogsStore {
 			if label == "" {
@@ -343,7 +195,9 @@ func (m *MockedElasticsearchProvider) FilterLabelLogs(params logs.Parameters, la
 			}
 		}
 	}
-
+	if len(params.Level) > 0 {
+		resultantLogs =generateIntermediateLogs(Level,params.Level,resultantLogs)
+	}
 	if len(resultantLogs) == 0 {
 		return nil, logs.NotFoundError()
 	}
@@ -351,78 +205,15 @@ func (m *MockedElasticsearchProvider) FilterLabelLogs(params logs.Parameters, la
 }
 
 func (m *MockedElasticsearchProvider) FilterPodLogs(params logs.Parameters) ([]string, error) {
-
-	logsLists := make(map[time.Time][]string)
-
-	for k, v := range m.App {
-		if v != nil {
-			logsLists[k] = v
-		}
+	resultantLogs,err := mockedFilterHelper(params,m)
+	if err!=nil{
+		return nil,logs.NotFoundError()
 	}
-	for k, v := range m.Infra {
-		if v != nil {
-			logsLists[k] = v
-		}
-	}
-	for k, v := range m.Audit {
-		if v != nil {
-			logsLists[k] = v
-		}
-	}
-
-	if len(logsLists) == 0 {
-		return nil, logs.NotFoundError()
-	}
-
-	resultantLogs := []string{}
-	var tempLogsStore []string
-
-	if len(params.FinishTime) > 0 && len(params.StartTime) > 0 {
-		start, _ := time.Parse(time.RFC3339Nano, params.StartTime)
-		finish, _ := time.Parse(time.RFC3339Nano, params.FinishTime)
-		for k, v := range logsLists {
-			if k.After(start) && k.Before(finish) {
-				resultantLogs = append(resultantLogs, v...)
-			}
-		}
-	} else {
-		for _, v := range logsLists {
-			resultantLogs = append(resultantLogs, v...)
-		}
-	}
-
+	resultantLogs = generateIntermediateLogs(namespaceName,params.Namespace,resultantLogs)
+	resultantLogs = generateIntermediateLogs(podName,params.Podname,resultantLogs)
 	if len(params.Level) > 0 {
-
-		tempLogsStore = resultantLogs
-		resultantLogs = []string{}
-
-		for _, v := range tempLogsStore {
-			level := "level: " + params.Level
-			if strings.Contains(v, level) {
-				resultantLogs = append(resultantLogs, v)
-			}
-		}
+		resultantLogs = generateIntermediateLogs(Level,params.Level,resultantLogs)
 	}
-
-	tempLogsStore = resultantLogs
-	resultantLogs = []string{}
-
-	for _, v := range tempLogsStore {
-		namespace := "namespace_name: " + params.Namespace
-		if strings.Contains(v, namespace) {
-			resultantLogs = append(resultantLogs, v)
-		}
-	}
-	tempLogsStore = resultantLogs
-	resultantLogs = []string{}
-
-	for _, v := range tempLogsStore {
-		pod := "pod_name: " + params.Podname
-		if strings.Contains(v, pod) {
-			resultantLogs = append(resultantLogs, v)
-		}
-	}
-
 	if len(resultantLogs) == 0 {
 		return nil, logs.NotFoundError()
 	}
@@ -430,68 +221,14 @@ func (m *MockedElasticsearchProvider) FilterPodLogs(params logs.Parameters) ([]s
 }
 
 func (m *MockedElasticsearchProvider) FilterNamespaceLogs(params logs.Parameters) ([]string, error) {
-
-	logsLists := make(map[time.Time][]string)
-
-	for k, v := range m.App {
-		if v != nil {
-			logsLists[k] = v
-		}
+	resultantLogs,err := mockedFilterHelper(params,m)
+	if err!=nil{
+		return nil,logs.NotFoundError()
 	}
-	for k, v := range m.Infra {
-		if v != nil {
-			logsLists[k] = v
-		}
-	}
-	for k, v := range m.Audit {
-		if v != nil {
-			logsLists[k] = v
-		}
-	}
-
-	if len(logsLists) == 0 {
-		return nil, logs.NotFoundError()
-	}
-
-	resultantLogs := []string{}
-	var tempLogsStore []string
-
-	if len(params.FinishTime) > 0 && len(params.StartTime) > 0 {
-		start, _ := time.Parse(time.RFC3339Nano, params.StartTime)
-		finish, _ := time.Parse(time.RFC3339Nano, params.FinishTime)
-		for k, v := range logsLists {
-			if k.After(start) && k.Before(finish) {
-				resultantLogs = append(resultantLogs, v...)
-			}
-		}
-	} else {
-		for _, v := range logsLists {
-			resultantLogs = append(resultantLogs, v...)
-		}
-	}
-
+	resultantLogs = generateIntermediateLogs(namespaceName,params.Namespace,resultantLogs)
 	if len(params.Level) > 0 {
-
-		tempLogsStore = resultantLogs
-		resultantLogs = []string{}
-
-		for _, v := range tempLogsStore {
-			level := "level: " + params.Level
-			if strings.Contains(v, level) {
-				resultantLogs = append(resultantLogs, v)
-			}
-		}
+		resultantLogs = generateIntermediateLogs(Level,params.Level,resultantLogs)
 	}
-
-	tempLogsStore = resultantLogs
-	resultantLogs = []string{}
-	for _, v := range tempLogsStore {
-		namespace := "namespace_name: " + params.Namespace
-		if strings.Contains(v, namespace) {
-			resultantLogs = append(resultantLogs, v)
-		}
-	}
-
 	if len(resultantLogs) == 0 {
 		return nil, logs.NotFoundError()
 	}

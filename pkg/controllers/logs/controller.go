@@ -45,24 +45,21 @@ func (controller *LogsController) FilterEntityLogs(gctx *gin.Context) {
 
 }
 
-func (controller *LogsController) FilterPodLogs(gctx *gin.Context) {
-
-	var params logs.Parameters
-
-	params.Namespace = gctx.Params.ByName("namespace")
-	params.Podname = gctx.Params.ByName("podname")
-
-	err := gctx.Bind(&params)
+func initializeQueryParameters(gctx *gin.Context) logs.Parameters{
+	var queryParams logs.Parameters
+	err := gctx.Bind(&queryParams)
 	if err != nil {
-		gctx.JSON(http.StatusInternalServerError, gin.H{ //If error is not nil, an internal server error might have occurred
+		gctx.JSON(http.StatusInternalServerError, gin.H{ //If error is not nil, an internal server error might have ocurred
 			"An error occurred": []string{err.Error()},
 		})
 	}
+	return queryParams
+}
 
-	logsList, err := controller.logsProvider.FilterPodLogs(params)
 
+func emitFilteredLogs(gctx *gin.Context, logsList []string,err error){
 	if err != nil {
-		if err.Error() == logs.NotFoundError().Error() || err.Error() == logs.InvalidLimit().Error() || err.Error() == logs.InvalidTimeStamp().Error() { //If error is not nil, and logs are not nil, implies a user error has occurred
+		if err.Error() == logs.NotFoundError().Error() { //If error is not nil, and logs are not nil, implies a user error has occurred
 			gctx.JSON(http.StatusBadRequest, gin.H{
 				"Please check the input parameters": []string{err.Error()},
 			})
@@ -74,169 +71,49 @@ func (controller *LogsController) FilterPodLogs(gctx *gin.Context) {
 			return
 		}
 	}
+	gctx.JSON(http.StatusOK,gin.H{"Logs":logsList})
+}
 
-	gctx.JSON(http.StatusOK, gin.H{"Logs": logsList})
+func (controller *LogsController) FilterPodLogs(gctx *gin.Context) {
+	params := initializeQueryParameters(gctx)
+	params.Namespace = gctx.Params.ByName("namespace")
+	params.Podname = gctx.Params.ByName("podname")
+	logsList, err := controller.logsProvider.FilterPodLogs(params)
+	emitFilteredLogs(gctx,logsList,err)
 
 }
 func (controller *LogsController) Logs(gctx *gin.Context) {
-
-	var params logs.Parameters
-
-	err := gctx.Bind(&params)
-	if err != nil {
-		gctx.JSON(http.StatusInternalServerError, gin.H{ //If error is not nil, an internal server error might have ocurred
-			"An error occurred": []string{err.Error()},
-		})
-	}
-
+	params := initializeQueryParameters(gctx)
 	logsList, err := controller.logsProvider.Logs(params)
-
-	if err != nil {
-		if err.Error() == logs.NotFoundError().Error() || err.Error() == logs.InvalidTimeStamp().Error() || err.Error() == logs.InvalidLimit().Error() { //If error is not nil, and logs are not nil, implies a user error has occurred
-			gctx.JSON(http.StatusBadRequest, gin.H{
-				"Please check the input parameters": []string{err.Error()},
-			})
-			return
-		} else {
-			gctx.JSON(http.StatusInternalServerError, gin.H{ //If error is not nil and logs are not nil, implies an internal server error might have ocurred
-				"An error occurred": []string{err.Error()},
-			})
-			return
-		}
-	}
-
-	gctx.JSON(http.StatusOK, gin.H{"Logs": logsList})
-
+	emitFilteredLogs(gctx,logsList,err)
 }
 
 func (controller *LogsController) FilterNamespaceLogs(gctx *gin.Context) {
-
-	var params logs.Parameters
-
+	params := initializeQueryParameters(gctx)
 	params.Namespace = gctx.Params.ByName("namespace")
-
-	err := gctx.Bind(&params)
-	if err != nil {
-		gctx.JSON(http.StatusInternalServerError, gin.H{ //If error is not nil, an internal server error might have ocurred
-			"An error occurred": []string{err.Error()},
-		})
-	}
-
 	logsList, err := controller.logsProvider.FilterNamespaceLogs(params)
-
-	if err != nil {
-		if err.Error() == logs.NotFoundError().Error() || err.Error() == logs.InvalidTimeStamp().Error() || err.Error() == logs.InvalidLimit().Error() { //If error is not nil, and logs are not nil, implies a user error has occurred
-			gctx.JSON(http.StatusBadRequest, gin.H{
-				"Please check the input parameters": []string{err.Error()},
-			})
-			return
-		} else {
-			gctx.JSON(http.StatusInternalServerError, gin.H{ //If error is not nil and logs are not nil, implies an internal server error might have ocurred
-				"An error occurred": []string{err.Error()},
-			})
-			return
-		}
-	}
-
-	gctx.JSON(http.StatusOK, gin.H{"Logs": logsList})
-
+	emitFilteredLogs(gctx,logsList,err)
 }
 
 func (controller *LogsController) FilterContainerLogs(gctx *gin.Context) {
-
-	var params logs.Parameters
-
+	params := initializeQueryParameters(gctx)
 	params.Namespace = gctx.Params.ByName("namespace")
 	params.ContainerName = gctx.Params.ByName("containername")
 	params.Podname = gctx.Params.ByName("podname")
-	err := gctx.Bind(&params)
-
-	if err != nil {
-		gctx.JSON(http.StatusInternalServerError, gin.H{ //If error is not nil, an internal server error might have ocurred
-			"An error occurred": []string{err.Error()},
-		})
-	}
-
 	logsList, err := controller.logsProvider.FilterContainerLogs(params)
-
-	if err != nil {
-		if err.Error() == logs.NotFoundError().Error() || err.Error() == logs.InvalidTimeStamp().Error() || err.Error() == logs.InvalidLimit().Error() { //If error is not nil, and logs are not nil, implies a user error has occurred
-			gctx.JSON(http.StatusBadRequest, gin.H{
-				"Please check the input parameters": []string{err.Error()},
-			})
-			return
-		} else {
-			gctx.JSON(http.StatusInternalServerError, gin.H{ //If error is not nil and logs are not nil, implies an internal server error might have ocurred
-				"An error occurred": []string{err.Error()},
-			})
-			return
-		}
-	}
-
-	gctx.JSON(http.StatusOK, gin.H{"Logs": logsList})
-
+	emitFilteredLogs(gctx,logsList,err)
 }
 
 func (controller *LogsController) FilterLabelLogs(gctx *gin.Context) {
-
-	var params logs.Parameters
-
+	params := initializeQueryParameters(gctx)
 	labels := gctx.Params.ByName("labels")
 	labelsList := strings.Split(labels, ",") //split labels on "," to obtain a list of individual labels
-	err := gctx.Bind(&params)
-
-	if err != nil {
-		gctx.JSON(http.StatusInternalServerError, gin.H{ //If error is not nil, an internal server error might have ocurred
-			"An error occurred": []string{err.Error()},
-		})
-	}
-
 	logsList, err := controller.logsProvider.FilterLabelLogs(params, labelsList)
-
-	if err != nil {
-		if err.Error() == logs.NotFoundError().Error() || err.Error() == logs.InvalidTimeStamp().Error() || err.Error() == logs.InvalidLimit().Error() { //If error is not nil, and logs are not nil, implies a user error has occurred
-			gctx.JSON(http.StatusBadRequest, gin.H{
-				"Please check the input parameters": []string{err.Error()},
-			})
-			return
-		} else {
-			gctx.JSON(http.StatusInternalServerError, gin.H{ //If error is not nil and logs are not nil, implies an internal server error might have ocurred
-				"An error occurred": []string{err.Error()},
-			})
-			return
-		}
-	}
-
-	gctx.JSON(http.StatusOK, gin.H{"Logs": logsList})
-
+	emitFilteredLogs(gctx,logsList,err)
 }
 
 func (controller *LogsController) FilterLogs(gctx *gin.Context) {
-
-	var params logs.Parameters
-	err := gctx.Bind(&params)
-	if err != nil {
-		gctx.JSON(http.StatusInternalServerError, gin.H{ //If error is not nil, an internal server error might have ocurred
-			"An error occurred": []string{err.Error()},
-		})
-	}
-
+	params := initializeQueryParameters(gctx)
 	logsList, err := controller.logsProvider.FilterLogs(params)
-
-	if err != nil {
-		if err.Error() == logs.NotFoundError().Error() || err.Error() == logs.InvalidTimeStamp().Error() || err.Error() == logs.InvalidLimit().Error() { //If error is not nil, and logs are not nil, implies a user error has occurred
-			gctx.JSON(http.StatusBadRequest, gin.H{
-				"Please check the input parameters": []string{err.Error()},
-			})
-			return
-		} else {
-			gctx.JSON(http.StatusInternalServerError, gin.H{ //If error is not nil and logs are not nil, implies an internal server error might have ocurred
-				"An error occurred": []string{err.Error()},
-			})
-			return
-		}
-	}
-
-	gctx.JSON(http.StatusOK, gin.H{"Logs": logsList})
-
+	emitFilteredLogs(gctx,logsList,err)
 }

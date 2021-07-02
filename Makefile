@@ -36,9 +36,8 @@ image-publish: image
 	$(CONTAINER_ENGINE) push ${IMAGE_PUSH_REGISTRY}:${VERSION}
 
 test-e2e:
-	docker-compose up -d
+	podman run -d --name elasticsearch -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:7.13.0
 	chmod +x test/e2e/populate_indices.sh
 	test/e2e/populate_indices.sh
 	go test -v test/e2e/*.go
-	docker-compose down -v
-
+	podman stop elasticsearch || true && podman rm elasticsearch || true
