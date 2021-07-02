@@ -9,14 +9,21 @@ LDFLAGS:= -s -w -X '${PACKAGE}/pkg/version.Version=${VERSION}' \
 BUILD_DIR:=./bin
 
 .PHONY: build test clean image image-publish
+fmt:
+	@echo gofmt
+	find pkg cmd test -name '*.go' | xargs gofmt -s -l -w
+
+lint:
+	golangci-lint run -c golangci.yaml
+
 build: test
 	mkdir -p $(BUILD_DIR)
 	CGO_ENABLED=0 GOOS=linux go build -ldflags "${LDFLAGS}" -o $(BUILD_DIR)/$(EXECUTABLE) cmd/apiserver/main.go
 
-test:
+test: fmt
 	go test ./pkg/... -coverprofile=covprofile
 
-test-cover:
+test-cover: fmt
 	go test ./pkg/... -coverprofile=coverage.out && go tool cover -html=coverage.out
 
 clean:
