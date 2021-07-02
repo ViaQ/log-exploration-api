@@ -14,7 +14,7 @@ build: test
 	CGO_ENABLED=0 GOOS=linux go build -ldflags "${LDFLAGS}" -o $(BUILD_DIR)/$(EXECUTABLE) cmd/apiserver/main.go
 
 test:
-	go test ./pkg/... -coverprofile=covprofile
+	go test ./pkg/... -cover
 
 test-cover:
 	go test ./pkg/... -coverprofile=coverage.out && go tool cover -html=coverage.out
@@ -29,9 +29,8 @@ image-publish: image
 	$(CONTAINER_ENGINE) push ${IMAGE_PUSH_REGISTRY}:${VERSION}
 
 test-e2e:
-	docker-compose up -d
+	podman run -d --name elasticsearch -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:7.13.0
 	chmod +x test/e2e/populate_indices.sh
 	test/e2e/populate_indices.sh
 	go test -v test/e2e/*.go
-	docker-compose down -v
-
+	podman stop elasticsearch || true && podman rm elasticsearch || true
