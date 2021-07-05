@@ -21,10 +21,11 @@ func NewMockedElastisearchProvider() *MockedElasticsearchProvider {
 		Audit: map[time.Time][]string{},
 	}
 }
-const(
-	Level = "level: "
+
+const (
+	Level         = "level: "
 	containerName = "container_name: "
-	podName = "pod_name: "
+	podName       = "pod_name: "
 	namespaceName = "namespace_name: "
 )
 
@@ -50,10 +51,10 @@ func (m *MockedElasticsearchProvider) Cleanup() {
 	m.Audit = map[time.Time][]string{}
 }
 
-func mockedFilterHelper(params logs.Parameters, m *MockedElasticsearchProvider)([]string,error){
-	lg:=make(map[time.Time][]string)
-	if len(params.Index)>0{
-		switch strings.ToLower(params.Index){
+func mockedFilterHelper(params logs.Parameters, m *MockedElasticsearchProvider) ([]string, error) {
+	lg := make(map[time.Time][]string)
+	if len(params.Index) > 0 {
+		switch strings.ToLower(params.Index) {
 		case "app":
 			lg = m.App
 		case "infra":
@@ -78,7 +79,7 @@ func mockedFilterHelper(params logs.Parameters, m *MockedElasticsearchProvider)(
 			}
 		}
 	}
-	if len(lg)==0 {
+	if len(lg) == 0 {
 		return nil, logs.NotFoundError()
 	}
 	var result []string
@@ -95,14 +96,14 @@ func mockedFilterHelper(params logs.Parameters, m *MockedElasticsearchProvider)(
 			result = append(result, v...)
 		}
 	}
-	if len(result)>0{
-		return result,nil
-	} else{
-		return nil,logs.NotFoundError()
+	if len(result) > 0 {
+		return result, nil
+	} else {
+		return nil, logs.NotFoundError()
 	}
 }
 
-func generateIntermediateLogs(typeOfLog string,parameter string,logs []string) []string{
+func generateIntermediateLogs(typeOfLog string, parameter string, logs []string) []string {
 	var resultantLogs []string
 	for _, v := range logs {
 		str := typeOfLog + parameter
@@ -114,12 +115,12 @@ func generateIntermediateLogs(typeOfLog string,parameter string,logs []string) [
 }
 
 func (m *MockedElasticsearchProvider) Logs(params logs.Parameters) ([]string, error) {
-	resultantLogs,err := mockedFilterHelper(params,m)
-	if err!=nil{
-		return nil,logs.NotFoundError()
+	resultantLogs, err := mockedFilterHelper(params, m)
+	if err != nil {
+		return nil, logs.NotFoundError()
 	}
 	if len(params.Level) > 0 {
-		resultantLogs = generateIntermediateLogs(Level,params.Level,resultantLogs)
+		resultantLogs = generateIntermediateLogs(Level, params.Level, resultantLogs)
 	}
 	if len(resultantLogs) == 0 {
 		return nil, logs.NotFoundError()
@@ -129,10 +130,10 @@ func (m *MockedElasticsearchProvider) Logs(params logs.Parameters) ([]string, er
 
 func (m *MockedElasticsearchProvider) FilterLogs(params logs.Parameters) ([]string, error) {
 
-	tempLogsStore,err := mockedFilterHelper(params,m)
+	tempLogsStore, err := mockedFilterHelper(params, m)
 	var resultantLogs []string
-	if err!=nil{
-		return nil,logs.NotFoundError()
+	if err != nil {
+		return nil, logs.NotFoundError()
 	}
 	if len(params.Podname) > 0 {
 		for _, v := range tempLogsStore {
@@ -161,15 +162,15 @@ func (m *MockedElasticsearchProvider) FilterLogs(params logs.Parameters) ([]stri
 	return resultantLogs, nil
 }
 func (m *MockedElasticsearchProvider) FilterContainerLogs(params logs.Parameters) ([]string, error) {
-	resultantLogs,err := mockedFilterHelper(params,m)
-	if err!=nil{
-		return nil,logs.NotFoundError()
+	resultantLogs, err := mockedFilterHelper(params, m)
+	if err != nil {
+		return nil, logs.NotFoundError()
 	}
-	resultantLogs = generateIntermediateLogs(namespaceName,params.Namespace,resultantLogs)
-	resultantLogs = generateIntermediateLogs(podName,params.Podname,resultantLogs)
-	resultantLogs = generateIntermediateLogs(containerName,params.ContainerName,resultantLogs)
+	resultantLogs = generateIntermediateLogs(namespaceName, params.Namespace, resultantLogs)
+	resultantLogs = generateIntermediateLogs(podName, params.Podname, resultantLogs)
+	resultantLogs = generateIntermediateLogs(containerName, params.ContainerName, resultantLogs)
 	if len(params.Level) > 0 {
-		resultantLogs = generateIntermediateLogs(Level,params.Level,resultantLogs)
+		resultantLogs = generateIntermediateLogs(Level, params.Level, resultantLogs)
 	}
 	if len(resultantLogs) == 0 {
 		return nil, logs.NotFoundError()
@@ -178,9 +179,9 @@ func (m *MockedElasticsearchProvider) FilterContainerLogs(params logs.Parameters
 }
 
 func (m *MockedElasticsearchProvider) FilterLabelLogs(params logs.Parameters, labelList []string) ([]string, error) {
-	resultantLogs,err := mockedFilterHelper(params,m)
-	if err!=nil{
-		return nil,logs.NotFoundError()
+	resultantLogs, err := mockedFilterHelper(params, m)
+	if err != nil {
+		return nil, logs.NotFoundError()
 	}
 	for _, label := range labelList {
 		tempLogsStore := resultantLogs
@@ -196,7 +197,7 @@ func (m *MockedElasticsearchProvider) FilterLabelLogs(params logs.Parameters, la
 		}
 	}
 	if len(params.Level) > 0 {
-		resultantLogs =generateIntermediateLogs(Level,params.Level,resultantLogs)
+		resultantLogs = generateIntermediateLogs(Level, params.Level, resultantLogs)
 	}
 	if len(resultantLogs) == 0 {
 		return nil, logs.NotFoundError()
@@ -205,14 +206,14 @@ func (m *MockedElasticsearchProvider) FilterLabelLogs(params logs.Parameters, la
 }
 
 func (m *MockedElasticsearchProvider) FilterPodLogs(params logs.Parameters) ([]string, error) {
-	resultantLogs,err := mockedFilterHelper(params,m)
-	if err!=nil{
-		return nil,logs.NotFoundError()
+	resultantLogs, err := mockedFilterHelper(params, m)
+	if err != nil {
+		return nil, logs.NotFoundError()
 	}
-	resultantLogs = generateIntermediateLogs(namespaceName,params.Namespace,resultantLogs)
-	resultantLogs = generateIntermediateLogs(podName,params.Podname,resultantLogs)
+	resultantLogs = generateIntermediateLogs(namespaceName, params.Namespace, resultantLogs)
+	resultantLogs = generateIntermediateLogs(podName, params.Podname, resultantLogs)
 	if len(params.Level) > 0 {
-		resultantLogs = generateIntermediateLogs(Level,params.Level,resultantLogs)
+		resultantLogs = generateIntermediateLogs(Level, params.Level, resultantLogs)
 	}
 	if len(resultantLogs) == 0 {
 		return nil, logs.NotFoundError()
@@ -221,13 +222,13 @@ func (m *MockedElasticsearchProvider) FilterPodLogs(params logs.Parameters) ([]s
 }
 
 func (m *MockedElasticsearchProvider) FilterNamespaceLogs(params logs.Parameters) ([]string, error) {
-	resultantLogs,err := mockedFilterHelper(params,m)
-	if err!=nil{
-		return nil,logs.NotFoundError()
+	resultantLogs, err := mockedFilterHelper(params, m)
+	if err != nil {
+		return nil, logs.NotFoundError()
 	}
-	resultantLogs = generateIntermediateLogs(namespaceName,params.Namespace,resultantLogs)
+	resultantLogs = generateIntermediateLogs(namespaceName, params.Namespace, resultantLogs)
 	if len(params.Level) > 0 {
-		resultantLogs = generateIntermediateLogs(Level,params.Level,resultantLogs)
+		resultantLogs = generateIntermediateLogs(Level, params.Level, resultantLogs)
 	}
 	if len(resultantLogs) == 0 {
 		return nil, logs.NotFoundError()
