@@ -22,13 +22,13 @@ type ElasticRepository struct {
 	log      *zap.Logger
 }
 
-const(
-	Term = "term"
-	Match = "match"
+const (
+	Term          = "term"
+	Match         = "match"
 	NamespaceName = "kubernetes.namespace_name"
-	PodName = "kubernetes.pod_name" 
-	ContainerName ="kubernetes.container_name.raw"
-	FlatLabel = "kubernetes.flat_labels"
+	PodName       = "kubernetes.pod_name"
+	ContainerName = "kubernetes.container_name.raw"
+	FlatLabel     = "kubernetes.flat_labels"
 )
 
 func NewElasticRepository(log *zap.Logger, config *configuration.ElasticsearchConfig) (logs.LogsProvider, error) {
@@ -64,7 +64,7 @@ func NewElasticRepository(log *zap.Logger, config *configuration.ElasticsearchCo
 	}
 	return repository, nil
 }
-func generateLogs(queryBuilder []map[string]interface{}, params logs.Parameters,repository *ElasticRepository) ([]string,error) {
+func generateLogs(queryBuilder []map[string]interface{}, params logs.Parameters, repository *ElasticRepository) ([]string, error) {
 	if len(params.Index) > 0 {
 		term := map[string]interface{}{
 			"term": map[string]interface{}{
@@ -72,7 +72,6 @@ func generateLogs(queryBuilder []map[string]interface{}, params logs.Parameters,
 		}
 		queryBuilder = append(queryBuilder, term)
 	}
-
 
 	if len(params.StartTime) > 0 && len(params.FinishTime) > 0 {
 		startTime, _ := time.Parse(time.RFC3339Nano, params.StartTime)
@@ -100,7 +99,7 @@ func generateLogs(queryBuilder []map[string]interface{}, params logs.Parameters,
 	if len(params.MaxLogs) > 0 {
 		maxLogs, _ := strconv.Atoi(params.MaxLogs)
 
-			maxEntries = maxLogs
+		maxEntries = maxLogs
 
 	}
 
@@ -119,16 +118,16 @@ func generateLogs(queryBuilder []map[string]interface{}, params logs.Parameters,
 		"size": maxEntries,
 		"sort": sortQuery,
 	}
-	logsList, err := getLogsList(query,repository.esClient,repository.log)
+	logsList, err := getLogsList(query, repository.esClient, repository.log)
 	if err != nil {
 		return nil, err
 	}
 	return logsList, nil
 }
 
-func appendToQueryBuilder(key string,typeOfQuery string,value interface{} ) map[string]interface{}{
+func appendToQueryBuilder(key string, typeOfQuery string, value interface{}) map[string]interface{} {
 	query := map[string]interface{}{
-		typeOfQuery:map[string]interface{}{
+		typeOfQuery: map[string]interface{}{
 			key: value},
 	}
 	return query
@@ -140,9 +139,9 @@ func (repository *ElasticRepository) FilterPodLogs(params logs.Parameters) ([]st
 		return nil, err
 	}
 	var queryBuilder []map[string]interface{}
-	queryBuilder = append(queryBuilder,appendToQueryBuilder(NamespaceName,Term,params.Namespace))
-	queryBuilder = append(queryBuilder,appendToQueryBuilder(PodName,Term,params.Podname))
-	return generateLogs(queryBuilder,params,repository)
+	queryBuilder = append(queryBuilder, appendToQueryBuilder(NamespaceName, Term, params.Namespace))
+	queryBuilder = append(queryBuilder, appendToQueryBuilder(PodName, Term, params.Podname))
+	return generateLogs(queryBuilder, params, repository)
 }
 
 func (repository *ElasticRepository) FilterNamespaceLogs(params logs.Parameters) ([]string, error) {
@@ -152,8 +151,8 @@ func (repository *ElasticRepository) FilterNamespaceLogs(params logs.Parameters)
 		return nil, err
 	}
 	var queryBuilder []map[string]interface{}
-	queryBuilder = append(queryBuilder,appendToQueryBuilder(NamespaceName,Term,params.Namespace))
-	return generateLogs(queryBuilder,params,repository)
+	queryBuilder = append(queryBuilder, appendToQueryBuilder(NamespaceName, Term, params.Namespace))
+	return generateLogs(queryBuilder, params, repository)
 }
 
 func (repository *ElasticRepository) FilterLabelLogs(params logs.Parameters, labelsList []string) ([]string, error) {
@@ -165,10 +164,10 @@ func (repository *ElasticRepository) FilterLabelLogs(params logs.Parameters, lab
 	var queryBuilder []map[string]interface{}
 	for _, label := range labelsList {
 		value := map[string]interface{}{
-				"query": label, "operator": "AND"}
-		queryBuilder = append(queryBuilder,appendToQueryBuilder(FlatLabel, Match,value))
+			"query": label, "operator": "AND"}
+		queryBuilder = append(queryBuilder, appendToQueryBuilder(FlatLabel, Match, value))
 	}
-	return generateLogs(queryBuilder,params,repository)
+	return generateLogs(queryBuilder, params, repository)
 }
 
 func (repository *ElasticRepository) FilterContainerLogs(params logs.Parameters) ([]string, error) {
@@ -178,10 +177,10 @@ func (repository *ElasticRepository) FilterContainerLogs(params logs.Parameters)
 		return nil, err
 	}
 	var queryBuilder []map[string]interface{}
-	queryBuilder = append(queryBuilder,appendToQueryBuilder(NamespaceName,Term,params.Namespace))
-	queryBuilder = append(queryBuilder,appendToQueryBuilder(PodName,Term,params.Podname))
-	queryBuilder = append(queryBuilder,appendToQueryBuilder(ContainerName,Term,params.ContainerName))
-	return generateLogs(queryBuilder,params,repository)
+	queryBuilder = append(queryBuilder, appendToQueryBuilder(NamespaceName, Term, params.Namespace))
+	queryBuilder = append(queryBuilder, appendToQueryBuilder(PodName, Term, params.Podname))
+	queryBuilder = append(queryBuilder, appendToQueryBuilder(ContainerName, Term, params.ContainerName))
+	return generateLogs(queryBuilder, params, repository)
 }
 func (repository *ElasticRepository) Logs(params logs.Parameters) ([]string, error) {
 
@@ -191,7 +190,7 @@ func (repository *ElasticRepository) Logs(params logs.Parameters) ([]string, err
 		return nil, err
 	}
 	var queryBuilder []map[string]interface{}
-	return generateLogs(queryBuilder,params,repository)
+	return generateLogs(queryBuilder, params, repository)
 
 }
 

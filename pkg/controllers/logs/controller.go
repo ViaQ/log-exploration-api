@@ -45,7 +45,7 @@ func (controller *LogsController) FilterEntityLogs(gctx *gin.Context) {
 
 }
 
-func initializeQueryParameters(gctx *gin.Context) logs.Parameters{
+func initializeQueryParameters(gctx *gin.Context) logs.Parameters {
 	var queryParams logs.Parameters
 	err := gctx.Bind(&queryParams)
 	if err != nil {
@@ -56,8 +56,7 @@ func initializeQueryParameters(gctx *gin.Context) logs.Parameters{
 	return queryParams
 }
 
-
-func emitFilteredLogs(gctx *gin.Context, logsList []string,err error){
+func emitFilteredLogs(gctx *gin.Context, logsList []string, err error) {
 	if err != nil {
 		if err.Error() == logs.NotFoundError().Error() { //If error is not nil, and logs are not nil, implies a user error has occurred
 			gctx.JSON(http.StatusBadRequest, gin.H{
@@ -71,7 +70,7 @@ func emitFilteredLogs(gctx *gin.Context, logsList []string,err error){
 			return
 		}
 	}
-	gctx.JSON(http.StatusOK,gin.H{"Logs":logsList})
+	gctx.JSON(http.StatusOK, gin.H{"Logs": logsList})
 }
 
 func (controller *LogsController) FilterPodLogs(gctx *gin.Context) {
@@ -79,20 +78,20 @@ func (controller *LogsController) FilterPodLogs(gctx *gin.Context) {
 	params.Namespace = gctx.Params.ByName("namespace")
 	params.Podname = gctx.Params.ByName("podname")
 	logsList, err := controller.logsProvider.FilterPodLogs(params)
-	emitFilteredLogs(gctx,logsList,err)
+	emitFilteredLogs(gctx, logsList, err)
 
 }
 func (controller *LogsController) Logs(gctx *gin.Context) {
 	params := initializeQueryParameters(gctx)
 	logsList, err := controller.logsProvider.Logs(params)
-	emitFilteredLogs(gctx,logsList,err)
+	emitFilteredLogs(gctx, logsList, err)
 }
 
 func (controller *LogsController) FilterNamespaceLogs(gctx *gin.Context) {
 	params := initializeQueryParameters(gctx)
 	params.Namespace = gctx.Params.ByName("namespace")
 	logsList, err := controller.logsProvider.FilterNamespaceLogs(params)
-	emitFilteredLogs(gctx,logsList,err)
+	emitFilteredLogs(gctx, logsList, err)
 }
 
 func (controller *LogsController) FilterContainerLogs(gctx *gin.Context) {
@@ -101,7 +100,7 @@ func (controller *LogsController) FilterContainerLogs(gctx *gin.Context) {
 	params.ContainerName = gctx.Params.ByName("containername")
 	params.Podname = gctx.Params.ByName("podname")
 	logsList, err := controller.logsProvider.FilterContainerLogs(params)
-	emitFilteredLogs(gctx,logsList,err)
+	emitFilteredLogs(gctx, logsList, err)
 }
 
 func (controller *LogsController) FilterLabelLogs(gctx *gin.Context) {
@@ -109,11 +108,11 @@ func (controller *LogsController) FilterLabelLogs(gctx *gin.Context) {
 	labels := gctx.Params.ByName("labels")
 	labelsList := strings.Split(labels, ",") //split labels on "," to obtain a list of individual labels
 	logsList, err := controller.logsProvider.FilterLabelLogs(params, labelsList)
-	emitFilteredLogs(gctx,logsList,err)
+	emitFilteredLogs(gctx, logsList, err)
 }
 
 func (controller *LogsController) FilterLogs(gctx *gin.Context) {
 	params := initializeQueryParameters(gctx)
 	logsList, err := controller.logsProvider.FilterLogs(params)
-	emitFilteredLogs(gctx,logsList,err)
+	emitFilteredLogs(gctx, logsList, err)
 }

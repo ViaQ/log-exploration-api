@@ -12,7 +12,6 @@ import (
 	"go.uber.org/zap"
 )
 
-
 type testStruct struct {
 	TestName   string
 	Index      string
@@ -24,15 +23,15 @@ type testStruct struct {
 	Status     int
 }
 
-func initProviderAndRouter() (p *elastic.MockedElasticsearchProvider,r *gin.Engine){
+func initProviderAndRouter() (p *elastic.MockedElasticsearchProvider, r *gin.Engine) {
 	provider := elastic.NewMockedElastisearchProvider()
 	gin.SetMode(gin.TestMode)
 	router := gin.Default()
 	NewLogsController(zap.L(), provider, router)
-	return provider,router
+	return provider, router
 }
 
-func performTests(t *testing.T,tt testStruct,url string,provider *elastic.MockedElasticsearchProvider,g *gin.Engine){
+func performTests(t *testing.T, tt testStruct, url string, provider *elastic.MockedElasticsearchProvider, g *gin.Engine) {
 
 	t.Log("Running:", tt.TestName)
 	logTime, _ := time.Parse(time.RFC3339Nano, "2021-03-17T14:22:40+05:30")
@@ -66,7 +65,7 @@ func performTests(t *testing.T,tt testStruct,url string,provider *elastic.Mocked
 }
 
 func Test_ControllerFilterLogs(t *testing.T) {
-	tests := []testStruct {
+	tests := []testStruct{
 		{
 			"Filter by no additional parameters",
 			"app",
@@ -164,17 +163,17 @@ func Test_ControllerFilterLogs(t *testing.T) {
 		},
 	}
 
-	provider,router := initProviderAndRouter()
+	provider, router := initProviderAndRouter()
 	for _, tt := range tests {
 		url := "/logs/filter"
-		performTests(t,tt,url,provider, router)
+		performTests(t, tt, url, provider, router)
 	}
 
 }
 
 func Test_ControllerFilterContainerLogs(t *testing.T) {
 
-	tests := []testStruct {
+	tests := []testStruct{
 		{
 			"Filter by container name on no additional query parameters",
 			"infra",
@@ -322,37 +321,37 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 		},
 	}
 
-	provider,router := initProviderAndRouter()
+	provider, router := initProviderAndRouter()
 	for _, tt := range tests {
 		nameSpace := tt.PathParams["namespace"]
 		podName := tt.PathParams["podname"]
 		containerName := tt.PathParams["containername"]
-		url := "/logs/namespace/"+nameSpace+"/pod/"+podName+"/container/"+containerName
-		performTests(t,tt,url,provider, router)
+		url := "/logs/namespace/" + nameSpace + "/pod/" + podName + "/container/" + containerName
+		performTests(t, tt, url, provider, router)
 	}
 
 }
 
 func Test_ControllerFilterLabelLogs(t *testing.T) {
 
-	tests := []testStruct {
+	tests := []testStruct{
 		{
-		"Filter label logs",
-		"infra",
-		false,
-		map[string]string{"flat_labels":"app=openshift-kube-scheduler,revision=8,scheduler=true"},
-		map[string]string{},
-		[]string{"test-log-1 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: registry, flat_labels: app=openshift-kube-scheduler,revision=8,scheduler=true",
-			"test-log-2 namespace_name: openshift-kube-controller-manager, pod_name: image-registry-78b76b488f-bzgqz, container_name: image, flat_labels: app=openshift-kube-scheduler,revision=8",
-			"test-log-3 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: openshift, flat_labels: app=cluster-version-operator"},
-		map[string][]string{"Logs": {"test-log-1 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: registry, flat_labels: app=openshift-kube-scheduler,revision=8,scheduler=true"}},
-		200,
+			"Filter label logs",
+			"infra",
+			false,
+			map[string]string{"flat_labels": "app=openshift-kube-scheduler,revision=8,scheduler=true"},
+			map[string]string{},
+			[]string{"test-log-1 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: registry, flat_labels: app=openshift-kube-scheduler,revision=8,scheduler=true",
+				"test-log-2 namespace_name: openshift-kube-controller-manager, pod_name: image-registry-78b76b488f-bzgqz, container_name: image, flat_labels: app=openshift-kube-scheduler,revision=8",
+				"test-log-3 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: openshift, flat_labels: app=cluster-version-operator"},
+			map[string][]string{"Logs": {"test-log-1 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: registry, flat_labels: app=openshift-kube-scheduler,revision=8,scheduler=true"}},
+			200,
 		},
 		{
 			"Filter label logs and no other parameter",
 			"infra",
 			false,
-			map[string]string{"flat_labels":"app=openshift-kube-scheduler,revision=8,scheduler=true"},
+			map[string]string{"flat_labels": "app=openshift-kube-scheduler,revision=8,scheduler=true"},
 			map[string]string{},
 			[]string{"flat_labels: app=openshift-kube-scheduler,revision=8,scheduler=true",
 				"flat_labels: app=openshift-kube-scheduler,revision=8",
@@ -364,7 +363,7 @@ func Test_ControllerFilterLabelLogs(t *testing.T) {
 			"Invalid filter labels",
 			"infra",
 			false,
-			map[string]string{"flat_labels":"app=dummy,revision=0,scheduler=false"},
+			map[string]string{"flat_labels": "app=dummy,revision=0,scheduler=false"},
 			map[string]string{},
 			[]string{"flat_labels: app=openshift-kube-scheduler,revision=8,scheduler=true",
 				"flat_labels: app=openshift-kube-scheduler,revision=8",
@@ -376,7 +375,7 @@ func Test_ControllerFilterLabelLogs(t *testing.T) {
 			"Filter by labels and time",
 			"infra",
 			false,
-			map[string]string{"flat_labels":"app=openshift-kube-scheduler,revision=8,scheduler=true"},
+			map[string]string{"flat_labels": "app=openshift-kube-scheduler,revision=8,scheduler=true"},
 			map[string]string{"starttime": "2021-03-17T14:22:20+05:30", "finishtime": "2021-03-17T14:23:20+05:30"},
 			[]string{"test-log-1 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: registry, flat_labels: app=openshift-kube-scheduler,revision=8,scheduler=true",
 				"test-log-2 namespace_name: openshift-kube-controller-manager, pod_name: image-registry-78b76b488f-bzgqz, container_name: image, flat_labels: app=openshift-kube-scheduler,revision=8",
@@ -388,7 +387,7 @@ func Test_ControllerFilterLabelLogs(t *testing.T) {
 			"Filter by labels and logging level",
 			"audit",
 			false,
-			map[string]string{"flat_labels":"app=openshift-kube-scheduler,revision=8,scheduler=true"},
+			map[string]string{"flat_labels": "app=openshift-kube-scheduler,revision=8,scheduler=true"},
 			map[string]string{
 				"level": "info",
 			},
@@ -400,7 +399,7 @@ func Test_ControllerFilterLabelLogs(t *testing.T) {
 			"Invalid timestamp",
 			"infra",
 			false,
-			map[string]string{"flat_labels":"app=openshift-kube-scheduler,revision=8,scheduler=true"},
+			map[string]string{"flat_labels": "app=openshift-kube-scheduler,revision=8,scheduler=true"},
 			map[string]string{
 				"starttime":  "hey",
 				"finishtime": "hey",
@@ -413,7 +412,7 @@ func Test_ControllerFilterLabelLogs(t *testing.T) {
 			"No logs in the given time interval",
 			"infra",
 			false,
-			map[string]string{"flat_labels":"app=openshift-cluster-version"},
+			map[string]string{"flat_labels": "app=openshift-cluster-version"},
 			map[string]string{
 				"starttime":  "2022-03-17T14:22:20+05:30",
 				"finishtime": "2022-03-17T14:23:20+05:30",
@@ -424,12 +423,12 @@ func Test_ControllerFilterLabelLogs(t *testing.T) {
 		},
 	}
 
-	provider,router := initProviderAndRouter()
+	provider, router := initProviderAndRouter()
 
 	for _, tt := range tests {
-			flatLabels := tt.PathParams["flat_labels"]
-			url := "/logs/logs_by_labels/"+flatLabels
-			performTests(t,tt,url,provider, router)
+		flatLabels := tt.PathParams["flat_labels"]
+		url := "/logs/logs_by_labels/" + flatLabels
+		performTests(t, tt, url, provider, router)
 
 	}
 
@@ -556,20 +555,20 @@ func Test_ControllerFilterPodLogs(t *testing.T) {
 		},
 	}
 
-	provider,router := initProviderAndRouter()
+	provider, router := initProviderAndRouter()
 	for _, tt := range tests {
 
 		nameSpace := tt.PathParams["namespace"]
 		podName := tt.PathParams["podname"]
-		url := "/logs/namespace/"+nameSpace+"/pod/"+podName
-		performTests(t,tt,url,provider, router)
+		url := "/logs/namespace/" + nameSpace + "/pod/" + podName
+		performTests(t, tt, url, provider, router)
 	}
 
 }
 
 func Test_ControllerFilterNamespaceLogs(t *testing.T) {
 
-	tests := []testStruct {
+	tests := []testStruct{
 		{
 			"Filter on namespace",
 			"infra",
@@ -655,18 +654,18 @@ func Test_ControllerFilterNamespaceLogs(t *testing.T) {
 		},
 	}
 
-	provider,router := initProviderAndRouter()
+	provider, router := initProviderAndRouter()
 	for _, tt := range tests {
 		nameSpace := tt.PathParams["namespace"]
-		url := "/logs/namespace/"+nameSpace
-		performTests(t,tt,url,provider, router)
+		url := "/logs/namespace/" + nameSpace
+		performTests(t, tt, url, provider, router)
 	}
 
 }
 
 func Test_ControllerLogs(t *testing.T) {
 
-	tests := []testStruct {
+	tests := []testStruct{
 		{
 			"Filter no additional query parameters [Get all logs]",
 			"infra",
@@ -746,10 +745,10 @@ func Test_ControllerLogs(t *testing.T) {
 		},
 	}
 
-	provider,router := initProviderAndRouter()
+	provider, router := initProviderAndRouter()
 	for _, tt := range tests {
 		url := "/logs"
-		performTests(t,tt,url,provider, router)
+		performTests(t, tt, url, provider, router)
 	}
 
 }
