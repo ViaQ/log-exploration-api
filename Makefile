@@ -21,7 +21,7 @@ build: test
 	CGO_ENABLED=0 GOOS=linux go build -ldflags "${LDFLAGS}" -o $(BUILD_DIR)/$(EXECUTABLE) cmd/apiserver/main.go
 
 test: fmt
-	go test ./pkg/... -coverprofile=covprofile
+	go test ./pkg/... -coverprofile=coverage.out
 
 test-cover: fmt
 	go test ./pkg/... -coverprofile=coverage.out && go tool cover -html=coverage.out
