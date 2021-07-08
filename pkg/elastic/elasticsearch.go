@@ -31,7 +31,7 @@ const (
 	FlatLabel     = "kubernetes.flat_labels"
 )
 
-func NewElasticRepository(log *zap.Logger, config *configuration.ElasticsearchConfig) (logs.LogsProvider, error) {
+func CreateElasticConfig(config *configuration.ElasticsearchConfig) (*elasticsearch.Client, error) {
 	cfg := elasticsearch.Config{
 		Addresses: []string{
 			config.EsAddress,
@@ -41,7 +41,6 @@ func NewElasticRepository(log *zap.Logger, config *configuration.ElasticsearchCo
 	if config.UseTLS {
 		cert, err := tls.LoadX509KeyPair(config.EsCert, config.EsKey)
 		if err != nil {
-			log.Error("an error occurred while configuring cert", zap.Error(err))
 			return nil, err
 		}
 		cfg.Transport = &http.Transport{
@@ -53,6 +52,13 @@ func NewElasticRepository(log *zap.Logger, config *configuration.ElasticsearchCo
 	}
 
 	esClient, err := elasticsearch.NewClient(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return esClient, nil
+}
+func NewElasticRepository(log *zap.Logger, config *configuration.ElasticsearchConfig) (logs.LogsProvider, error) {
+	esClient, err := CreateElasticConfig(config)
 	if err != nil {
 		log.Error("failed to configure Elasticsearch", zap.Error(err))
 		return nil, err

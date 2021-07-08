@@ -1,6 +1,9 @@
 package logscontroller
 
 import (
+	"flag"
+	"github.com/ViaQ/log-exploration-api/pkg/configuration"
+	"github.com/ViaQ/log-exploration-api/pkg/elastic"
 	"net/http"
 	"strings"
 
@@ -36,9 +39,38 @@ func NewLogsController(log *zap.Logger, logsProvider logs.LogsProvider, router *
 	r.GET("", controller.Logs)
 	r.GET("/logs/namespace/:namespace/:entity/:entity_name", controller.FilterEntityLogs)
 	r.GET("/logs_by_labels/:labels", controller.FilterLabelLogs)
+	///r1 := router.Group("")
+	//r1.GET("/health", controller.HealthHandler)
+	//r1.GET("/ready", controller.ReadinessHandler)
 	return controller
 }
+func (controller *LogsController) HealthHandler(gctx *gin.Context) {
+	gctx.Header("Access-Control-Allow-Origin", "*")
+	gctx.Header("Access-Control-Allow-Headers", "access-control-allow-origin, access-control-allow-headers")
 
+	gctx.JSON(http.StatusOK, gin.H{"Message": "Success"})
+}
+
+func (controller *LogsController) ReadinessHandler(gctx *gin.Context) {
+	gctx.Header("Access-Control-Allow-Origin", "*")
+	gctx.Header("Access-Control-Allow-Headers", "access-control-allow-origin, access-control-allow-headers")
+	esAddress := flag.Lookup("es-addr").Value.(flag.Getter).Get().(string)
+	esTLS := flag.Lookup("es-tls").Value.(flag.Getter).Get().(bool)
+	esCert := flag.Lookup("es-cert").Value.(flag.Getter).Get().(string)
+	esKey := flag.Lookup("es-key").Value.(flag.Getter).Get().(string)
+	elasticConfig := configuration.ElasticsearchConfig{
+		EsAddress: esAddress,
+		EsCert:    esCert,
+		EsKey:     esKey,
+		UseTLS:    esTLS,
+	}
+	_, err := elastic.CreateElasticConfig(&elasticConfig)
+	if err != nil {
+		gctx.JSON(http.StatusOK, gin.H{"Message": "failed to connect to esClient"})
+		return
+	}
+	gctx.JSON(http.StatusOK, gin.H{"Message": "Success"})
+}
 func (controller *LogsController) FilterEntityLogs(gctx *gin.Context) {
 
 	gctx.JSON(http.StatusOK, gin.H{"Logs": "To Be Implemented"})
