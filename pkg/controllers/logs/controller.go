@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/ViaQ/log-exploration-api/pkg/logs"
+	"github.com/ViaQ/log-exploration-api/pkg/middleware"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -14,20 +15,13 @@ type LogsController struct {
 	log          *zap.Logger
 }
 
-func addHeader() gin.HandlerFunc {
-	return func(gctx *gin.Context) {
-		gctx.Header("Access-Control-Allow-Origin", "*")
-		gctx.Next()
-	}
-}
-
 func NewLogsController(log *zap.Logger, logsProvider logs.LogsProvider, router *gin.Engine) *LogsController {
 	controller := &LogsController{
 		log:          log,
 		logsProvider: logsProvider,
 	}
 
-	router.Use(addHeader())
+	router.Use(middleware.AddHeader())
 	r := router.Group("logs")
 	r.GET("/filter", controller.FilterLogs)
 	r.GET("/namespace/:namespace", controller.FilterNamespaceLogs)

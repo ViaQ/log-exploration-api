@@ -21,7 +21,8 @@ func TestMain(m *testing.M) {
 	esRepository, _ = elastic.NewElasticRepository(log.Named("elasticsearch"), appConf.Elasticsearch)
 	os.Exit(m.Run())
 }
-type testStruct struct{
+
+type testStruct struct {
 	TestName     string
 	ShouldFail   bool
 	TestParams   map[string]string
@@ -29,16 +30,16 @@ type testStruct struct{
 	TestKeywords []string
 }
 
-func initRepository(t *testing.T,tt testStruct) (logs.LogsProvider,logs.Parameters){
+func initRepository(t *testing.T, tt testStruct) (logs.LogsProvider, logs.Parameters) {
 	t.Log("Running:", tt.TestName)
 	repository := esRepository
 	params := logs.Parameters{}
 
 	addParams(&params, tt.TestParams)
-	return repository,params
+	return repository, params
 }
 
-func errorHandler(t *testing.T,testError,err error,testKeywords,logList []string,testName string){
+func errorHandler(t *testing.T, testError, err error, testKeywords, logList []string, testName string) {
 	if err == nil && testError != nil {
 		t.Errorf("Expected error is: %v, found %v", testError, err)
 	} else if err != nil && testError == nil {
@@ -130,9 +131,9 @@ func TestFilterPodLogs(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		repository,params := initRepository(t,tt)
+		repository, params := initRepository(t, tt)
 		logList, err := repository.FilterPodLogs(params)
-		errorHandler(t,tt.TestError,err,tt.TestKeywords,logList,tt.TestName)
+		errorHandler(t, tt.TestError, err, tt.TestKeywords, logList, tt.TestName)
 	}
 }
 
@@ -220,7 +221,7 @@ func TestFilterLogsByLabel(t *testing.T) {
 		params := logs.Parameters{}
 		addParams(&params, tt.TestParams)
 		logList, err := repository.FilterLabelLogs(params, tt.LabelList)
-		errorHandler(t,tt.TestError,err,tt.TestKeywords,logList,tt.TestName)
+		errorHandler(t, tt.TestError, err, tt.TestKeywords, logList, tt.TestName)
 	}
 }
 
@@ -288,9 +289,9 @@ func TestFilterNamespaceLogs(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		repository,params := initRepository(t,tt)
+		repository, params := initRepository(t, tt)
 		logList, err := repository.FilterNamespaceLogs(params)
-		errorHandler(t,tt.TestError,err,tt.TestKeywords,logList,tt.TestName)
+		errorHandler(t, tt.TestError, err, tt.TestKeywords, logList, tt.TestName)
 	}
 }
 
@@ -365,9 +366,9 @@ func TestFilterContainerLogs(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		repository,params := initRepository(t,tt)
+		repository, params := initRepository(t, tt)
 		logList, err := repository.FilterContainerLogs(params)
-		errorHandler(t,tt.TestError,err,tt.TestKeywords,logList,tt.TestName)
+		errorHandler(t, tt.TestError, err, tt.TestKeywords, logList, tt.TestName)
 	}
 
 }
@@ -456,9 +457,9 @@ func TestFilterLogs(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		repository,params := initRepository(t,tt)
+		repository, params := initRepository(t, tt)
 		logList, err := repository.FilterLogs(params)
-		errorHandler(t,tt.TestError,err,tt.TestKeywords,logList,tt.TestName)
+		errorHandler(t, tt.TestError, err, tt.TestKeywords, logList, tt.TestName)
 	}
 }
 
@@ -520,9 +521,9 @@ func TestLogs(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		repository,params := initRepository(t,tt)
+		repository, params := initRepository(t, tt)
 		logList, err := repository.Logs(params)
-		errorHandler(t,tt.TestError,err,tt.TestKeywords,logList,tt.TestName)
+		errorHandler(t, tt.TestError, err, tt.TestKeywords, logList, tt.TestName)
 	}
 }
 func addParams(params *logs.Parameters, testParams map[string]string) {
