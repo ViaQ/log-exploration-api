@@ -1,6 +1,7 @@
 package health
 
 import (
+	"github.com/ViaQ/log-exploration-api/pkg/middleware"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -10,8 +11,6 @@ func NewHealthController(router *gin.Engine) {
 }
 
 func HealthHandler(gctx *gin.Context) {
-	gctx.Header("Access-Control-Allow-Origin", "*")
-	gctx.Header("Access-Control-Allow-Headers", "access-control-allow-origin, access-control-allow-headers")
-
+	middleware.AddHeader()
 	gctx.JSON(http.StatusOK, gin.H{"Message": "Success"})
 }

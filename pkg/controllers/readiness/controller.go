@@ -4,6 +4,7 @@ import (
 	"flag"
 	"github.com/ViaQ/log-exploration-api/pkg/configuration"
 	"github.com/ViaQ/log-exploration-api/pkg/elastic"
+	"github.com/ViaQ/log-exploration-api/pkg/middleware"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -13,8 +14,7 @@ func NewReadinessController(router *gin.Engine) {
 }
 
 func ReadinessHandler(gctx *gin.Context) {
-	gctx.Header("Access-Control-Allow-Origin", "*")
-	gctx.Header("Access-Control-Allow-Headers", "access-control-allow-origin, access-control-allow-headers")
+	middleware.AddHeader()
 	esAddress := flag.Lookup("es-addr").Value.(flag.Getter).Get().(string)
 	esTLS := flag.Lookup("es-tls").Value.(flag.Getter).Get().(bool)
 	esCert := flag.Lookup("es-cert").Value.(flag.Getter).Get().(string)
