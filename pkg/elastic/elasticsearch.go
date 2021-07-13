@@ -22,6 +22,21 @@ type ElasticRepository struct {
 	log      *zap.Logger
 }
 
+func (repository *ElasticRepository) CheckReadiness() bool {
+	clusterHealth, _ := repository.esClient.Cluster.Health()
+	var result map[string]interface{}
+	err := json.NewDecoder(clusterHealth.Body).Decode(&result)
+	if err != nil {
+		repository.log.Error("error occurred while decoding the cluster health")
+		return false
+	}
+	clusterHealthStatus := result["status"]
+	if clusterHealthStatus == "green" || clusterHealthStatus == "yellow" {
+		return true
+	}
+	return false
+}
+
 const (
 	Term          = "term"
 	Match         = "match"

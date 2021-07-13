@@ -1,16 +1,36 @@
 package health
 
 import (
+	"github.com/ViaQ/log-exploration-api/pkg/logs"
 	"github.com/ViaQ/log-exploration-api/pkg/middleware"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
-func NewHealthController(router *gin.Engine) {
-	router.GET("/health", HealthHandler)
+type HealthController struct {
+	healthProvider logs.LogsProvider
 }
 
-func HealthHandler(gctx *gin.Context) {
+func NewHealthController(router *gin.Engine, logsProvider logs.LogsProvider) {
+	healthController := &HealthController{
+		healthProvider: logsProvider,
+	}
+	r := router.Group("")
+	r.GET("/health", healthController.HealthHandler)
+	r.GET("/ready", healthController.ReadinessHandler)
+}
+
+func (healthController *HealthController) HealthHandler(gctx *gin.Context) {
 	middleware.AddHeader()
+	gctx.JSON(http.StatusOK, gin.H{"Message": "Success"})
+}
+
+func (healthController *HealthController) ReadinessHandler(gctx *gin.Context) {
+	middleware.AddHeader()
+	checkReadiness := healthController.healthProvider.CheckReadiness()
+	if checkReadiness == false {
+		gctx.JSON(http.StatusBadRequest, gin.H{"Message": "failed to connect to esClient"})
+		return
+	}
 	gctx.JSON(http.StatusOK, gin.H{"Message": "Success"})
 }

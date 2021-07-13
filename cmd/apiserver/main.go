@@ -5,7 +5,6 @@ import (
 
 	healthcontroller "github.com/ViaQ/log-exploration-api/pkg/controllers/health"
 	logscontroller "github.com/ViaQ/log-exploration-api/pkg/controllers/logs"
-	readinesscontroller "github.com/ViaQ/log-exploration-api/pkg/controllers/readiness"
 	"github.com/ViaQ/log-exploration-api/pkg/elastic"
 	"github.com/ViaQ/log-exploration-api/pkg/version"
 	"go.uber.org/zap"
@@ -36,8 +35,7 @@ func main() {
 
 	router := gin.New()
 	logscontroller.NewLogsController(log.Named("logs-controller"), repository, router)
-	healthcontroller.NewHealthController(router)
-	readinesscontroller.NewReadinessController(router)
+	healthcontroller.NewHealthController(router, repository)
 
 	router.Run()
 }
