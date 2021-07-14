@@ -7,4 +7,5 @@ type LogsProvider interface {
 	FilterNamespaceLogs(params Parameters) ([]string, error)
 	FilterPodLogs(params Parameters) ([]string, error)
 	Logs(params Parameters) ([]string, error)
+	CheckReadiness() bool
 }

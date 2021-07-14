@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 
+	healthcontroller "github.com/ViaQ/log-exploration-api/pkg/controllers/health"
 	logscontroller "github.com/ViaQ/log-exploration-api/pkg/controllers/logs"
 	"github.com/ViaQ/log-exploration-api/pkg/elastic"
 	"github.com/ViaQ/log-exploration-api/pkg/version"
@@ -34,6 +35,7 @@ func main() {
 
 	router := gin.New()
 	logscontroller.NewLogsController(log.Named("logs-controller"), repository, router)
+	healthcontroller.NewHealthController(router, repository)
 
 	router.Run()
 }

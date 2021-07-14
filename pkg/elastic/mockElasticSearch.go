@@ -9,16 +9,26 @@ import (
 )
 
 type MockedElasticsearchProvider struct {
-	App   map[time.Time][]string
-	Infra map[time.Time][]string
-	Audit map[time.Time][]string
+	App            map[time.Time][]string
+	Infra          map[time.Time][]string
+	Audit          map[time.Time][]string
+	checkReadiness bool
+}
+
+func (m *MockedElasticsearchProvider) CheckReadiness() bool {
+	if m.checkReadiness == true {
+		return true
+	} else {
+		return false
+	}
 }
 
 func NewMockedElastisearchProvider() *MockedElasticsearchProvider {
 	return &MockedElasticsearchProvider{
-		App:   map[time.Time][]string{},
-		Infra: map[time.Time][]string{},
-		Audit: map[time.Time][]string{},
+		App:            map[time.Time][]string{},
+		Infra:          map[time.Time][]string{},
+		Audit:          map[time.Time][]string{},
+		checkReadiness: true,
 	}
 }
 
@@ -28,6 +38,10 @@ const (
 	podName       = "pod_name: "
 	namespaceName = "namespace_name: "
 )
+
+func (m *MockedElasticsearchProvider) UpdateReadinessState(checkReadiness bool) {
+	m.checkReadiness = checkReadiness
+}
 
 func (m *MockedElasticsearchProvider) PutDataAtTime(logTime time.Time, index string, data []string) error {
 	switch strings.ToLower(index) {
