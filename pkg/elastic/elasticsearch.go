@@ -23,9 +23,12 @@ type ElasticRepository struct {
 }
 
 func (repository *ElasticRepository) CheckReadiness() bool {
-	clusterHealth, _ := repository.esClient.Cluster.Health()
+	clusterHealth, err := repository.esClient.Cluster.Health()
+	if err!=nil{
+		repository.log.Error("error while connecting to elasticsearch to retrieve health status",zap.Error(err))
+	}
 	var result map[string]interface{}
-	err := json.NewDecoder(clusterHealth.Body).Decode(&result)
+	err = json.NewDecoder(clusterHealth.Body).Decode(&result)
 	if err != nil {
 		repository.log.Error("error occurred while decoding the cluster health")
 		return false
