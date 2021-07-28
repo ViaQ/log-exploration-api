@@ -22,9 +22,9 @@ spec:
         - name: ES_ADDR
           value: https://elasticsearch.openshift-logging:9200
         - name: ES_CERT
-          value: /etc/openshift/elasticsearch/secret/admin-cert
+          value: /etc/openshift/elasticsearch/secret/tls.crt
         - name: ES_KEY
-          value: /etc/openshift/elasticsearch/secret/admin-key
+          value: /etc/openshift/elasticsearch/secret/tls.key
         - name: ES_TLS
           value: "true"
         ports:
@@ -48,7 +48,7 @@ spec:
       volumes:
         - name: certificates
           secret:
-             secretName: elasticsearch
+             secretName: fluentd
              defaultMode: 420
 
         
