@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: log-exploration-api-service-monitor
+  namespace: openshift-logging # defines what namespace to put this resource in
+spec:
+  endpoints:
+    - path: /metrics
+      port: prom-metrics
+      targetPort: 8080
+      scheme: http
+      interval: 30s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - openshift-logging
+  selector:
+    matchLabels:
+      app: log-exploration-api

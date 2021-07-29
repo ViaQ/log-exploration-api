@@ -4,11 +4,12 @@ metadata:
   name: log-exploration-api-service
   namespace: openshift-logging
   labels:
-    app: log-exploration-api-service
+    app: log-exploration-api
 spec:
   type: ClusterIP
   ports:
     - port: 8080
       targetPort: 8080
+      name: prom-metrics
   selector:
     app: log-exploration-api
