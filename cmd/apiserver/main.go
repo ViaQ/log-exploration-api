@@ -34,7 +34,7 @@ func main() {
 	}
 
 	router := gin.New()
-	metricscontroller.NewMetricsController(router)
+	metricscontroller.NewMetricsController(log.Named("metrics"), router)
 	logscontroller.NewLogsController(log.Named("logs-controller"), repository, router)
 	healthcontroller.NewHealthController(router, repository)
 

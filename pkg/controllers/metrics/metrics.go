@@ -3,8 +3,8 @@ package metrics
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.uber.org/zap"
 	"strconv"
 )
 
@@ -24,7 +24,7 @@ var (
 		[]string{"status"},
 	)
 
-	httpDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+	httpDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "custom_metric_http_response_time_seconds",
 		Help:    "Duration of HTTP requests.",
 		Buckets: prometheus.LinearBuckets(0.001, 0.003, 10),
@@ -37,16 +37,17 @@ var (
 	}
 )
 
-func NewMetricsController(router *gin.Engine) {
-	RegisterCustomMetrics()
+func NewMetricsController(log *zap.Logger, router *gin.Engine) {
+	RegisterCustomMetrics(log)
 	router.Use(MiddlewareMetrics())
 	router.GET("/metrics", HandlerMetrics())
 }
 
-func RegisterCustomMetrics() {
+func RegisterCustomMetrics(log *zap.Logger) {
 	for _, metric := range metricList {
 		err := prometheus.Register(metric)
 		if err != nil {
+			log.Error("An error occurred when registering custom metrics with Prometheus.", zap.Error(err))
 			return
 		}
 	}
