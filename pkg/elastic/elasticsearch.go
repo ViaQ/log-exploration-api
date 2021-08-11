@@ -2,10 +2,9 @@ package elastic
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -57,18 +56,18 @@ func CreateElasticConfig(config *configuration.ElasticsearchConfig) (*elasticsea
 		},
 	}
 
-	if config.UseTLS {
-		cert, err := tls.LoadX509KeyPair(config.EsCert, config.EsKey)
-		if err != nil {
-			return nil, err
-		}
-		cfg.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-				Certificates:       []tls.Certificate{cert},
-			},
-		}
-	}
+	//if config.UseTLS {
+	//	cert, err := tls.LoadX509KeyPair(config.EsCert, config.EsKey)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	cfg.Transport = &http.Transport{
+	//		TLSClientConfig: &tls.Config{
+	//			InsecureSkipVerify: true,
+	//			Certificates:       []tls.Certificate{cert},
+	//		},
+	//	}
+	//}
 
 	esClient, err := elasticsearch.NewClient(cfg)
 	if err != nil {
@@ -317,8 +316,17 @@ func getLogsList(query map[string]interface{}, esClient *elasticsearch.Client, l
 
 	b.WriteString(string(jsonQuery))
 	body := strings.NewReader(b.String())
-
+	tokenJsonFormat := os.Getenv("token")
+	if tokenJsonFormat == "" {
+		return nil, errors.New("token not found")
+	}
+	var token map[string]string
+	err = json.Unmarshal([]byte(tokenJsonFormat), &token)
+	if err != nil {
+		return nil, err
+	}
 	searchResult, err := esClient.Search(
+		esClient.Search.WithHeader(token),
 		esClient.Search.WithContext(context.Background()),
 		esClient.Search.WithBody(body),
 		esClient.Search.WithIndex(constants.InfraIndexName, constants.AppIndexName, constants.AuditIndexName),

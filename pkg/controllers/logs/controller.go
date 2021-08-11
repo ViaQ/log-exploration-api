@@ -23,6 +23,7 @@ func NewLogsController(log *zap.Logger, logsProvider logs.LogsProvider, router *
 
 	router.Use(middleware.AddHeader())
 	r := router.Group("logs")
+	r.Use(middleware.TokenHeader())
 	r.GET("/filter", controller.FilterLogs)
 	r.GET("/namespace/:namespace", controller.FilterNamespaceLogs)
 	r.GET("/namespace/:namespace/pod/:podname", controller.FilterPodLogs)
