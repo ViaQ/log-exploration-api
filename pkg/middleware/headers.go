@@ -17,6 +17,9 @@ func AddHeader() gin.HandlerFunc {
 func TokenHeader() gin.HandlerFunc {
 	return func(gctx *gin.Context) {
 		tokenValue := gctx.Request.Header["Authorization"]
+		if len(tokenValue) == 0 {
+			return
+		}
 		token := map[string]string{"Authorization": tokenValue[0]}
 		mJson, err := json.Marshal(token)
 		if err != nil {
