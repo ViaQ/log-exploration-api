@@ -17,6 +17,7 @@ func NewHealthController(router *gin.Engine, logsProvider logs.LogsProvider) {
 	}
 	router.Use(middleware.AddHeader())
 	r := router.Group("")
+	r.Use(middleware.TokenHeader())
 	r.GET("/health", healthController.HealthHandler)
 	r.GET("/ready", healthController.ReadinessHandler)
 }
