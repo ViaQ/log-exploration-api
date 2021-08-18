@@ -10,6 +10,11 @@ import (
 func AddHeader() gin.HandlerFunc {
 	return func(gctx *gin.Context) {
 		gctx.Header("Access-Control-Allow-Origin", "*")
+		gctx.Header("Access-Control-Allow-Methods", "DELETE, POST, GET, OPTIONS")
+		gctx.Header("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With")
+		if gctx.Request.Method == "OPTIONS" {
+			gctx.AbortWithStatus(204)
+		}
 		gctx.Next()
 	}
 }

@@ -2,8 +2,11 @@ package elastic
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -56,18 +59,18 @@ func CreateElasticConfig(config *configuration.ElasticsearchConfig) (*elasticsea
 		},
 	}
 
-	//if config.UseTLS {
-	//	cert, err := tls.LoadX509KeyPair(config.EsCert, config.EsKey)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	cfg.Transport = &http.Transport{
-	//		TLSClientConfig: &tls.Config{
-	//			InsecureSkipVerify: true,
-	//			Certificates:       []tls.Certificate{cert},
-	//		},
-	//	}
-	//}
+	if config.UseTLS {
+		cert, err := tls.LoadX509KeyPair(config.EsCert, config.EsKey)
+		if err != nil {
+			return nil, err
+		}
+		cfg.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+				Certificates:       []tls.Certificate{cert},
+			},
+		}
+	}
 
 	esClient, err := elasticsearch.NewClient(cfg)
 	if err != nil {
@@ -317,6 +320,7 @@ func getLogsList(query map[string]interface{}, esClient *elasticsearch.Client, l
 	b.WriteString(string(jsonQuery))
 	body := strings.NewReader(b.String())
 	tokenJsonFormat := os.Getenv("token")
+	fmt.Println("value of the token is : " + tokenJsonFormat)
 	if tokenJsonFormat == "" {
 		return nil, errors.New("token not found")
 	}
