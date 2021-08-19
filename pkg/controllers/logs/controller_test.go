@@ -21,6 +21,7 @@ type testStruct struct {
 	TestData   []string
 	Response   map[string][]string
 	Status     int
+	UseToken   bool
 }
 
 func initProviderAndRouter() (p *elastic.MockedElasticsearchProvider, r *gin.Engine) {
@@ -40,6 +41,9 @@ func performTests(t *testing.T, tt testStruct, url string, provider *elastic.Moc
 
 	rr := httptest.NewRecorder()
 	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if tt.UseToken {
+		req.Header.Set("Authorization", "Bearer abcdefghijklmnopqrstuv")
+	}
 	q := req.URL.Query()
 	for k, v := range tt.TestParams {
 		q.Add(k, v)
@@ -75,6 +79,18 @@ func Test_ControllerFilterLogs(t *testing.T) {
 			[]string{"test-log-1", "test-log-2", "test-log-3"},
 			map[string][]string{"Logs": {"test-log-1", "test-log-2", "test-log-3"}},
 			200,
+			true,
+		},
+		{
+			"Test with no token",
+			"app",
+			false,
+			map[string]string{},
+			map[string]string{},
+			[]string{"test-log-1", "test-log-2", "test-log-3"},
+			map[string][]string{"Unauthorized, Please pass the token": {"authorization token not found"}},
+			401,
+			false,
 		},
 		{
 			"Filter by index",
@@ -85,6 +101,7 @@ func Test_ControllerFilterLogs(t *testing.T) {
 			[]string{"test-log-1", "test-log-2", "test-log-3"},
 			map[string][]string{"Logs": {"test-log-1", "test-log-2", "test-log-3"}},
 			200,
+			true,
 		},
 		{
 			"Filter by time",
@@ -95,6 +112,7 @@ func Test_ControllerFilterLogs(t *testing.T) {
 			[]string{"test-log-1", "test-log-2", "test-log-3"},
 			map[string][]string{"Logs": {"test-log-1", "test-log-2", "test-log-3"}},
 			200,
+			true,
 		},
 		{
 			"Filter by podname",
@@ -105,6 +123,7 @@ func Test_ControllerFilterLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler"},
 			map[string][]string{"Logs": {"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler"}},
 			200,
+			true,
 		},
 		{
 			"Filter by multiple parameters",
@@ -121,6 +140,7 @@ func Test_ControllerFilterLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler"},
 			map[string][]string{"Logs": {"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler"}},
 			200,
+			true,
 		},
 		{
 			"Invalid parameters",
@@ -134,6 +154,7 @@ func Test_ControllerFilterLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 		{
 			"Invalid timestamp",
@@ -147,6 +168,7 @@ func Test_ControllerFilterLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 		{
 			"No logs in the given time interval",
@@ -160,6 +182,7 @@ func Test_ControllerFilterLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 	}
 
@@ -185,6 +208,20 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 				"test-log-3 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: openshift"},
 			map[string][]string{"Logs": {"test-log-1 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: registry"}},
 			200,
+			true,
+		},
+		{
+			"Test with no token",
+			"infra",
+			false,
+			map[string]string{"containername": "registry", "namespace": "openshift-image-registry", "podname": "image-registry-78b76b488f-9lvnn"},
+			map[string]string{},
+			[]string{"test-log-1 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: registry",
+				"test-log-2 namespace_name: openshift-kube-controller-manager, pod_name: image-registry-78b76b488f-bzgqz, container_name: image",
+				"test-log-3 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: openshift"},
+			map[string][]string{"Unauthorized, Please pass the token": {"authorization token not found"}},
+			401,
+			false,
 		},
 		{
 			"Filter by logging level on container name",
@@ -195,6 +232,7 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, level: info, container_name: openshift-kube-scheduler"},
 			map[string][]string{"Logs": {"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, level: info, container_name: openshift-kube-scheduler"}},
 			200,
+			true,
 		},
 		{
 			"Filter by time",
@@ -208,6 +246,7 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift"},
 			map[string][]string{"Logs": {"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift"}},
 			200,
+			true,
 		},
 		{
 			"Filter by time, and logging level",
@@ -222,6 +261,7 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift, level: warn"},
 			map[string][]string{"Logs": {"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift, level: warn"}},
 			200,
+			true,
 		},
 		{
 			"Invalid podname, valid containername and namespace",
@@ -232,6 +272,7 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, containername: openshift"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 		{
 			"Invalid containername, valid namespace and valid podname",
@@ -242,6 +283,7 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, containername: openshift"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 		{
 			"Invalid namespace, valid containername and valid podname",
@@ -252,6 +294,7 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, containername: openshift"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 		{
 			"Invalid namespace, invalid containername and valid podname",
@@ -262,6 +305,7 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, containername: openshift"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 		{
 			"Invalid namespace, valid containername and invalid podname",
@@ -272,6 +316,7 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, containername: openshift"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 		{
 			"Valid namespace, invalid containername and invalid podname",
@@ -282,6 +327,7 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, containername: openshift"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 		{
 			"Invalid namespace, invalid containername and invalid podname",
@@ -292,6 +338,7 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, containername: openshift"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 		{
 			"Invalid timestamp",
@@ -305,6 +352,7 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift-kube"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 		{
 			"No logs in the given time interval",
@@ -318,6 +366,7 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift-kube"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 	}
 
@@ -346,6 +395,20 @@ func Test_ControllerFilterLabelLogs(t *testing.T) {
 				"test-log-3 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: openshift, flat_labels: app=cluster-version-operator"},
 			map[string][]string{"Logs": {"test-log-1 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: registry, flat_labels: app=openshift-kube-scheduler,revision=8,scheduler=true"}},
 			200,
+			true,
+		},
+		{
+			"Test with no token",
+			"infra",
+			false,
+			map[string]string{"flat_labels": "app=openshift-kube-scheduler,revision=8,scheduler=true"},
+			map[string]string{},
+			[]string{"test-log-1 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: registry, flat_labels: app=openshift-kube-scheduler,revision=8,scheduler=true",
+				"test-log-2 namespace_name: openshift-kube-controller-manager, pod_name: image-registry-78b76b488f-bzgqz, container_name: image, flat_labels: app=openshift-kube-scheduler,revision=8",
+				"test-log-3 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: openshift, flat_labels: app=cluster-version-operator"},
+			map[string][]string{"Unauthorized, Please pass the token": {"authorization token not found"}},
+			401,
+			false,
 		},
 		{
 			"Filter label logs and no other parameter",
@@ -358,6 +421,7 @@ func Test_ControllerFilterLabelLogs(t *testing.T) {
 				"flat_labels: app=cluster-version-operator"},
 			map[string][]string{"Logs": {"flat_labels: app=openshift-kube-scheduler,revision=8,scheduler=true"}},
 			200,
+			true,
 		},
 		{
 			"Invalid filter labels",
@@ -370,6 +434,7 @@ func Test_ControllerFilterLabelLogs(t *testing.T) {
 				"flat_labels: app=cluster-version-operator"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 		{
 			"Filter by labels and time",
@@ -382,6 +447,7 @@ func Test_ControllerFilterLabelLogs(t *testing.T) {
 				"test-log-3 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: openshift, flat_labels: app=cluster-version-operator"},
 			map[string][]string{"Logs": {"test-log-1 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: registry, flat_labels: app=openshift-kube-scheduler,revision=8,scheduler=true"}},
 			200,
+			true,
 		},
 		{
 			"Filter by labels and logging level",
@@ -394,6 +460,7 @@ func Test_ControllerFilterLabelLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, level: info, flat_labels: app=openshift-kube-scheduler, revision=8, scheduler=true"},
 			map[string][]string{"Logs": {"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, level: info, flat_labels: app=openshift-kube-scheduler, revision=8, scheduler=true"}},
 			200,
+			true,
 		},
 		{
 			"Invalid timestamp",
@@ -407,6 +474,7 @@ func Test_ControllerFilterLabelLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, flat_labels: app=openshift-kube-scheduler,revision=8,scheduler=true"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 		{
 			"No logs in the given time interval",
@@ -420,6 +488,7 @@ func Test_ControllerFilterLabelLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, flat_labels: app=openshift-cluster-version"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 	}
 
@@ -449,6 +518,20 @@ func Test_ControllerFilterPodLogs(t *testing.T) {
 			map[string][]string{"Logs": {"test-log-1 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: registry",
 				"test-log-3 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: openshift"}},
 			200,
+			true,
+		},
+		{
+			"Test with No Token",
+			"infra",
+			false,
+			map[string]string{"namespace": "openshift-image-registry", "podname": "image-registry-78b76b488f-9lvnn"},
+			map[string]string{},
+			[]string{"test-log-1 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: registry",
+				"test-log-2 namespace_name: openshift-kube-controller-manager, pod_name: image-registry-78b76b488f-bzgqz, container_name: image",
+				"test-log-3 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: openshift"},
+			map[string][]string{"Unauthorized, Please pass the token": {"authorization token not found"}},
+			401,
+			false,
 		},
 		{
 			"Filter by logging level",
@@ -459,6 +542,7 @@ func Test_ControllerFilterPodLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, level: info, container_name: openshift-kube-scheduler"},
 			map[string][]string{"Logs": {"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, level: info, container_name: openshift-kube-scheduler"}},
 			200,
+			true,
 		},
 		{
 			"Invalid Path Parameters",
@@ -469,6 +553,7 @@ func Test_ControllerFilterPodLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, level: info, container_name: openshift-kube-scheduler"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 		{
 			"Filter by time",
@@ -482,6 +567,7 @@ func Test_ControllerFilterPodLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift"},
 			map[string][]string{"Logs": {"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift"}},
 			200,
+			true,
 		},
 		{
 			"Filter by time, and logging level",
@@ -496,6 +582,7 @@ func Test_ControllerFilterPodLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift, level: warn"},
 			map[string][]string{"Logs": {"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift, level: warn"}},
 			200,
+			true,
 		},
 		{
 			"Invalid namespace and valid podname",
@@ -506,6 +593,7 @@ func Test_ControllerFilterPodLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 		{
 			"Valid namespace and Invalid podname",
@@ -516,6 +604,7 @@ func Test_ControllerFilterPodLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 		{
 			"Invalid namespace and Invalid podname",
@@ -526,6 +615,7 @@ func Test_ControllerFilterPodLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 		{
 			"Invalid timestamp",
@@ -539,6 +629,7 @@ func Test_ControllerFilterPodLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift-kube"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 		{
 			"No logs in the given time interval",
@@ -552,6 +643,7 @@ func Test_ControllerFilterPodLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift-kube"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 	}
 
@@ -581,6 +673,20 @@ func Test_ControllerFilterNamespaceLogs(t *testing.T) {
 			map[string][]string{"Logs": {"test-log-1 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: registry",
 				"test-log-3 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: openshift"}},
 			200,
+			true,
+		},
+		{
+			"Test with no token",
+			"infra",
+			false,
+			map[string]string{"namespace": "openshift-image-registry"},
+			map[string]string{},
+			[]string{"test-log-1 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: registry",
+				"test-log-2 namespace_name: openshift-kube-controller-manager, pod_name: image-registry-78b76b488f-bzgqz, container_name: image",
+				"test-log-3 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: openshift"},
+			map[string][]string{"Unauthorized, Please pass the token": {"authorization token not found"}},
+			401,
+			false,
 		},
 		{
 			"Filter by namespace and logging level",
@@ -591,6 +697,7 @@ func Test_ControllerFilterNamespaceLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, level: info, container_name: openshift-kube-scheduler"},
 			map[string][]string{"Logs": {"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, level: info, container_name: openshift-kube-scheduler"}},
 			200,
+			true,
 		},
 		{
 			"Filter by namespace and time ",
@@ -601,6 +708,7 @@ func Test_ControllerFilterNamespaceLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift-kube-scheduler"},
 			map[string][]string{"Logs": {"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift-kube-scheduler"}},
 			200,
+			true,
 		},
 		{
 			"Filter by namespace, time, and logging level",
@@ -615,6 +723,7 @@ func Test_ControllerFilterNamespaceLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift, level: warn"},
 			map[string][]string{"Logs": {"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift, level: warn"}},
 			200,
+			true,
 		},
 		{
 			"Invalid Namespace",
@@ -625,6 +734,7 @@ func Test_ControllerFilterNamespaceLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 		{
 			"Invalid timestamp",
@@ -638,6 +748,7 @@ func Test_ControllerFilterNamespaceLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift-kube"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 		{
 			"No logs in the given time interval",
@@ -651,6 +762,7 @@ func Test_ControllerFilterNamespaceLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift-kube"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 	}
 
@@ -679,6 +791,20 @@ func Test_ControllerLogs(t *testing.T) {
 				"test-log-2 namespace_name: openshift-kube-controller-manager, pod_name: image-registry-78b76b488f-bzgqz, container_name: image",
 				"test-log-3 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: openshift"}},
 			200,
+			true,
+		},
+		{
+			"Test with no token",
+			"infra",
+			false,
+			map[string]string{},
+			map[string]string{},
+			[]string{"test-log-1 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: registry",
+				"test-log-2 namespace_name: openshift-kube-controller-manager, pod_name: image-registry-78b76b488f-bzgqz, container_name: image",
+				"test-log-3 namespace_name: openshift-image-registry, pod_name: image-registry-78b76b488f-9lvnn, container_name: openshift"},
+			map[string][]string{"Unauthorized, Please pass the token": {"authorization token not found"}},
+			401,
+			false,
 		},
 		{
 			"Filter by logging level",
@@ -690,6 +816,7 @@ func Test_ControllerLogs(t *testing.T) {
 				"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, level: warn, container_name: openshift-kube-scheduler"},
 			map[string][]string{"Logs": {"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, level: info, container_name: openshift-kube-scheduler"}},
 			200,
+			true,
 		},
 		{
 			"Filter by time, and logging level",
@@ -704,6 +831,7 @@ func Test_ControllerLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift, level: warn"},
 			map[string][]string{"Logs": {"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift, level: warn"}},
 			200,
+			true,
 		},
 		{
 			"Invalid timestamp",
@@ -717,6 +845,7 @@ func Test_ControllerLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift-kube"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 		{
 			"Invalid Logging level",
@@ -729,6 +858,7 @@ func Test_ControllerLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift-kube"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 		{
 			"No logs in the given time interval",
@@ -742,6 +872,7 @@ func Test_ControllerLogs(t *testing.T) {
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift-kube"},
 			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
 			400,
+			true,
 		},
 	}
 

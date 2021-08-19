@@ -1,10 +1,8 @@
 package middleware
 
 import (
-	"encoding/json"
-	"fmt"
 	"github.com/gin-gonic/gin"
-	"os"
+	"strings"
 )
 
 func AddHeader() gin.HandlerFunc {
@@ -22,19 +20,9 @@ func AddHeader() gin.HandlerFunc {
 func TokenHeader() gin.HandlerFunc {
 	return func(gctx *gin.Context) {
 		tokenValue := gctx.Request.Header["Authorization"]
-		if len(tokenValue) == 0 {
-			return
+		if len(tokenValue) == 0 || len(strings.Split(tokenValue[0], "Bearer ")) <= 1 {
+			gctx.AbortWithStatusJSON(401, map[string][]string{"Unauthorized, Please pass the token": {"authorization token not found"}})
 		}
-		token := map[string]string{"Authorization": tokenValue[0]}
-		mJson, err := json.Marshal(token)
-		if err != nil {
-			fmt.Println(err.Error())
-			return
-		}
-		jsonStr := string(mJson)
-		err = os.Setenv("token", jsonStr)
-		if err != nil {
-			return
-		}
+		gctx.Next()
 	}
 }

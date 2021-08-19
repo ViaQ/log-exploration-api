@@ -72,12 +72,14 @@ func (controller *LogsController) FilterPodLogs(gctx *gin.Context) {
 	params := initializeQueryParameters(gctx)
 	params.Namespace = gctx.Params.ByName("namespace")
 	params.Podname = gctx.Params.ByName("podname")
+	params.Token = map[string]string{"Authorization": gctx.Request.Header["Authorization"][0]}
 	logsList, err := controller.logsProvider.FilterPodLogs(params)
 	emitFilteredLogs(gctx, logsList, err)
 
 }
 func (controller *LogsController) Logs(gctx *gin.Context) {
 	params := initializeQueryParameters(gctx)
+	params.Token = map[string]string{"Authorization": gctx.Request.Header["Authorization"][0]}
 	logsList, err := controller.logsProvider.Logs(params)
 	emitFilteredLogs(gctx, logsList, err)
 }
@@ -85,6 +87,7 @@ func (controller *LogsController) Logs(gctx *gin.Context) {
 func (controller *LogsController) FilterNamespaceLogs(gctx *gin.Context) {
 	params := initializeQueryParameters(gctx)
 	params.Namespace = gctx.Params.ByName("namespace")
+	params.Token = map[string]string{"Authorization": gctx.Request.Header["Authorization"][0]}
 	logsList, err := controller.logsProvider.FilterNamespaceLogs(params)
 	emitFilteredLogs(gctx, logsList, err)
 }
@@ -94,6 +97,7 @@ func (controller *LogsController) FilterContainerLogs(gctx *gin.Context) {
 	params.Namespace = gctx.Params.ByName("namespace")
 	params.ContainerName = gctx.Params.ByName("containername")
 	params.Podname = gctx.Params.ByName("podname")
+	params.Token = map[string]string{"Authorization": gctx.Request.Header["Authorization"][0]}
 	logsList, err := controller.logsProvider.FilterContainerLogs(params)
 	emitFilteredLogs(gctx, logsList, err)
 }
@@ -102,12 +106,14 @@ func (controller *LogsController) FilterLabelLogs(gctx *gin.Context) {
 	params := initializeQueryParameters(gctx)
 	labels := gctx.Params.ByName("labels")
 	labelsList := strings.Split(labels, ",") //split labels on "," to obtain a list of individual labels
+	params.Token = map[string]string{"Authorization": gctx.Request.Header["Authorization"][0]}
 	logsList, err := controller.logsProvider.FilterLabelLogs(params, labelsList)
 	emitFilteredLogs(gctx, logsList, err)
 }
 
 func (controller *LogsController) FilterLogs(gctx *gin.Context) {
 	params := initializeQueryParameters(gctx)
+	params.Token = map[string]string{"Authorization": gctx.Request.Header["Authorization"][0]}
 	logsList, err := controller.logsProvider.FilterLogs(params)
 	emitFilteredLogs(gctx, logsList, err)
 }
