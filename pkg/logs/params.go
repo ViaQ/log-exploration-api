@@ -9,4 +9,5 @@ type Parameters struct {
 	Level         string `form:"level"`
 	MaxLogs       string `form:"maxlogs"`
 	ContainerName string `form:"containername"`
+	Token         map[string]string
 }

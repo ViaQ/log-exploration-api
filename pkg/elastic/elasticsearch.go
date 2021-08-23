@@ -143,7 +143,7 @@ func generateLogs(queryBuilder []map[string]interface{}, params logs.Parameters,
 		"size": maxEntries,
 		"sort": sortQuery,
 	}
-	logsList, err := getLogsList(query, repository.esClient, repository.log)
+	logsList, err := getLogsList(params.Token, query, repository.esClient, repository.log)
 	if err != nil {
 		return nil, err
 	}
@@ -295,14 +295,14 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 		"sort": sortQuery,
 	}
 
-	logsList, err := getLogsList(query, repository.esClient, repository.log)
+	logsList, err := getLogsList(params.Token, query, repository.esClient, repository.log)
 	if err != nil {
 		return nil, err
 	}
 	return logsList, nil
 }
 
-func getLogsList(query map[string]interface{}, esClient *elasticsearch.Client, log *zap.Logger) ([]string, error) {
+func getLogsList(token map[string]string, query map[string]interface{}, esClient *elasticsearch.Client, log *zap.Logger) ([]string, error) {
 
 	jsonQuery, err := json.Marshal(query)
 
@@ -317,8 +317,8 @@ func getLogsList(query map[string]interface{}, esClient *elasticsearch.Client, l
 
 	b.WriteString(string(jsonQuery))
 	body := strings.NewReader(b.String())
-
 	searchResult, err := esClient.Search(
+		esClient.Search.WithHeader(token),
 		esClient.Search.WithContext(context.Background()),
 		esClient.Search.WithBody(body),
 		esClient.Search.WithIndex(constants.InfraIndexName, constants.AppIndexName, constants.AuditIndexName),
