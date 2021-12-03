@@ -19,9 +19,11 @@ type testStruct struct {
 	PathParams map[string]string
 	TestParams map[string]string
 	TestData   []string
-	Response   map[string][]string
+	Response   interface{}
 	Status     int
 }
+
+var errorResponse = map[string]interface{}{"Logs": nil, "Error": "Not Found Error, please check the input parameters"}
 
 func initProviderAndRouter() (p *elastic.MockedElasticsearchProvider, r *gin.Engine) {
 	provider := elastic.NewMockedElastisearchProvider()
@@ -65,6 +67,7 @@ func performTests(t *testing.T, tt testStruct, url string, provider *elastic.Moc
 }
 
 func Test_ControllerFilterLogs(t *testing.T) {
+
 	tests := []testStruct{
 		{
 			"Filter by no additional parameters",
@@ -132,7 +135,7 @@ func Test_ControllerFilterLogs(t *testing.T) {
 				"namespace": "world",
 			},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 		{
@@ -145,7 +148,7 @@ func Test_ControllerFilterLogs(t *testing.T) {
 				"finishtime": "hey",
 			},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 		{
@@ -158,7 +161,7 @@ func Test_ControllerFilterLogs(t *testing.T) {
 				"finishtime": "2022-03-17T14:23:20+05:30",
 			},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 	}
@@ -230,7 +233,7 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 			map[string]string{"containername": "openshift", "namespace": "openshift-kube-scheduler", "podname": "dummy_podname"},
 			map[string]string{},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, containername: openshift"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 		{
@@ -240,7 +243,7 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 			map[string]string{"containername": "dummy_container", "namespace": "openshift-kube-scheduler", "podname": "openshift-kube-scheduler-ip-10-0-157-165.ec2.internal"},
 			map[string]string{},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, containername: openshift"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 		{
@@ -250,7 +253,7 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 			map[string]string{"containername": "openshift", "namespace": "dummy_namespace", "podname": "openshift-kube-scheduler-ip-10-0-157-165.ec2.internal"},
 			map[string]string{},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, containername: openshift"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 		{
@@ -260,7 +263,7 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 			map[string]string{"containername": "dummy_container", "namespace": "dummy_namespace", "podname": "openshift-kube-scheduler-ip-10-0-157-165.ec2.internal"},
 			map[string]string{},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, containername: openshift"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 		{
@@ -270,7 +273,7 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 			map[string]string{"containername": "openshift", "namespace": "dummy_namespace", "podname": "dummy_podname"},
 			map[string]string{},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, containername: openshift"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 		{
@@ -280,7 +283,7 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 			map[string]string{"containername": "dummy_container", "namespace": "openshift-kube-scheduler", "podname": "dummy_podname"},
 			map[string]string{},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, containername: openshift"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 		{
@@ -290,7 +293,7 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 			map[string]string{"containername": "dummy_container", "namespace": "dummy_namespace", "podname": "dummy_podname"},
 			map[string]string{},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, containername: openshift"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 		{
@@ -303,7 +306,7 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 				"finishtime": "hey",
 			},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift-kube"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 		{
@@ -316,7 +319,7 @@ func Test_ControllerFilterContainerLogs(t *testing.T) {
 				"finishtime": "2022-03-17T14:23:20+05:30",
 			},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift-kube"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 	}
@@ -368,7 +371,7 @@ func Test_ControllerFilterLabelLogs(t *testing.T) {
 			[]string{"flat_labels: app=openshift-kube-scheduler,revision=8,scheduler=true",
 				"flat_labels: app=openshift-kube-scheduler,revision=8",
 				"flat_labels: app=cluster-version-operator"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 		{
@@ -405,7 +408,7 @@ func Test_ControllerFilterLabelLogs(t *testing.T) {
 				"finishtime": "hey",
 			},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, flat_labels: app=openshift-kube-scheduler,revision=8,scheduler=true"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 		{
@@ -418,7 +421,7 @@ func Test_ControllerFilterLabelLogs(t *testing.T) {
 				"finishtime": "2022-03-17T14:23:20+05:30",
 			},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, flat_labels: app=openshift-cluster-version"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 	}
@@ -467,7 +470,7 @@ func Test_ControllerFilterPodLogs(t *testing.T) {
 			map[string]string{"podname": "cluster-kube-scheduler-ip-10-0-157-165.ec2.internal", "namespace": "openshift-kube-scheduler"},
 			map[string]string{"level": "info"},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, level: info, container_name: openshift-kube-scheduler"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 		{
@@ -504,7 +507,7 @@ func Test_ControllerFilterPodLogs(t *testing.T) {
 			map[string]string{"podname": "openshift-kube-scheduler-ip-10-0-157-165.ec2.internal", "namespace": "dummy"},
 			map[string]string{},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 		{
@@ -514,7 +517,7 @@ func Test_ControllerFilterPodLogs(t *testing.T) {
 			map[string]string{"podname": "dummy", "namespace": "openshift-kube-scheduler"},
 			map[string]string{},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 		{
@@ -524,7 +527,7 @@ func Test_ControllerFilterPodLogs(t *testing.T) {
 			map[string]string{"podname": "dummy", "namespace": "dummy"},
 			map[string]string{},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 		{
@@ -537,7 +540,7 @@ func Test_ControllerFilterPodLogs(t *testing.T) {
 				"finishtime": "hey",
 			},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift-kube"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 		{
@@ -550,7 +553,7 @@ func Test_ControllerFilterPodLogs(t *testing.T) {
 				"finishtime": "2022-03-17T14:23:20+05:30",
 			},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift-kube"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 	}
@@ -623,7 +626,7 @@ func Test_ControllerFilterNamespaceLogs(t *testing.T) {
 			map[string]string{"namespace": "cluster-scheduler"},
 			map[string]string{},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 		{
@@ -636,7 +639,7 @@ func Test_ControllerFilterNamespaceLogs(t *testing.T) {
 				"finishtime": "hey",
 			},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift-kube"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 		{
@@ -649,7 +652,7 @@ func Test_ControllerFilterNamespaceLogs(t *testing.T) {
 				"finishtime": "2022-03-17T14:23:20+05:30",
 			},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift-kube"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 	}
@@ -715,7 +718,7 @@ func Test_ControllerLogs(t *testing.T) {
 				"finishtime": "hey",
 			},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift-kube"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 		{
@@ -727,7 +730,7 @@ func Test_ControllerLogs(t *testing.T) {
 				"level": "invalid-level",
 			},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift-kube"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 		{
@@ -740,7 +743,7 @@ func Test_ControllerLogs(t *testing.T) {
 				"finishtime": "2022-03-17T14:23:20+05:30",
 			},
 			[]string{"test-log pod_name: openshift-kube-scheduler-ip-10-0-157-165.ec2.internal, namespace_name: openshift-kube-scheduler, container_name: openshift-kube"},
-			map[string][]string{"Please check the input parameters": {"Not Found Error"}},
+			errorResponse,
 			400,
 		},
 	}
