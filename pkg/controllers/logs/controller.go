@@ -10,6 +10,11 @@ import (
 	"go.uber.org/zap"
 )
 
+type ResponseLogs struct {
+	Error string   `json:"Error"`
+	Logs  []string `json:"Logs"`
+}
+
 type LogsController struct {
 	logsProvider logs.LogsProvider
 	log          *zap.Logger
@@ -35,32 +40,34 @@ func NewLogsController(log *zap.Logger, logsProvider logs.LogsProvider, router *
 }
 
 func (controller *LogsController) FilterEntityLogs(gctx *gin.Context) {
-
 	gctx.JSON(http.StatusOK, gin.H{"Logs": "To Be Implemented"})
-
 }
 
 func initializeQueryParameters(gctx *gin.Context) logs.Parameters {
 	var queryParams logs.Parameters
 	err := gctx.Bind(&queryParams)
 	if err != nil {
-		gctx.JSON(http.StatusInternalServerError, gin.H{ //If error is not nil, an internal server error might have ocurred
-			"An error occurred": []string{err.Error()},
+		gctx.JSON(http.StatusInternalServerError, &ResponseLogs{ //If error is not nil, an internal server error might have ocurred
+			Error: err.Error() + ", an internal server error may have occurred",
+			Logs:  nil,
 		})
 	}
 	return queryParams
 }
 
 func emitFilteredLogs(gctx *gin.Context, logsList []string, err error) {
+
 	if err != nil {
 		if err.Error() == logs.NotFoundError().Error() { //If error is not nil, and logs are not nil, implies a user error has occurred
-			gctx.JSON(http.StatusBadRequest, gin.H{
-				"Please check the input parameters": []string{err.Error()},
+			gctx.JSON(http.StatusBadRequest, &ResponseLogs{
+				Error: logs.NotFoundError().Error() + ", please check the input parameters",
+				Logs:  logsList,
 			})
 			return
 		} else {
-			gctx.JSON(http.StatusInternalServerError, gin.H{ //If error is not nil and logs are not nil, implies an internal server error might have ocurred
-				"An error occurred": []string{err.Error()},
+			gctx.JSON(http.StatusInternalServerError, &ResponseLogs{ //If error is not nil and logs are not nil, implies an internal server error might have ocurred
+				Error: err.Error() + ", an internal server error may have occurred",
+				Logs:  logsList,
 			})
 			return
 		}
@@ -75,8 +82,8 @@ func (controller *LogsController) FilterPodLogs(gctx *gin.Context) {
 	params.Token = map[string]string{"Authorization": gctx.Request.Header["Authorization"][0]}
 	logsList, err := controller.logsProvider.FilterPodLogs(params)
 	emitFilteredLogs(gctx, logsList, err)
-
 }
+
 func (controller *LogsController) Logs(gctx *gin.Context) {
 	params := initializeQueryParameters(gctx)
 	params.Token = map[string]string{"Authorization": gctx.Request.Header["Authorization"][0]}
