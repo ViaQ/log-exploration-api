@@ -20,6 +20,7 @@ import (
 type ElasticRepository struct {
 	esClient *elasticsearch.Client
 	log      *zap.Logger
+	timeout  time.Duration
 }
 
 func (repository *ElasticRepository) CheckReadiness() bool {
@@ -86,6 +87,7 @@ func NewElasticRepository(log *zap.Logger, config *configuration.ElasticsearchCo
 	repository := &ElasticRepository{
 		log:      log,
 		esClient: esClient,
+		timeout:  config.Timeout,
 	}
 	return repository, nil
 }
@@ -143,7 +145,7 @@ func generateLogs(queryBuilder []map[string]interface{}, params logs.Parameters,
 		"size": maxEntries,
 		"sort": sortQuery,
 	}
-	logsList, err := getLogsList(params.Token, query, repository.esClient, repository.log)
+	logsList, err := getLogsList(params.Token, query, repository)
 	if err != nil {
 		return nil, err
 	}
@@ -295,14 +297,18 @@ func (repository *ElasticRepository) FilterLogs(params logs.Parameters) ([]strin
 		"sort": sortQuery,
 	}
 
-	logsList, err := getLogsList(params.Token, query, repository.esClient, repository.log)
+	logsList, err := getLogsList(params.Token, query, repository)
 	if err != nil {
 		return nil, err
 	}
 	return logsList, nil
 }
 
-func getLogsList(token map[string]string, query map[string]interface{}, esClient *elasticsearch.Client, log *zap.Logger) ([]string, error) {
+func getLogsList(token map[string]string, query map[string]interface{}, repository *ElasticRepository) ([]string, error) {
+
+	esClient := repository.esClient
+	log := repository.log
+	timeout := repository.timeout
 
 	jsonQuery, err := json.Marshal(query)
 
@@ -317,9 +323,13 @@ func getLogsList(token map[string]string, query map[string]interface{}, esClient
 
 	b.WriteString(string(jsonQuery))
 	body := strings.NewReader(b.String())
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
 	searchResult, err := esClient.Search(
 		esClient.Search.WithHeader(token),
-		esClient.Search.WithContext(context.Background()),
+		esClient.Search.WithContext(ctx),
 		esClient.Search.WithBody(body),
 		esClient.Search.WithIndex(constants.InfraIndexName, constants.AppIndexName, constants.AuditIndexName),
 		esClient.Search.WithTrackTotalHits(true),
@@ -327,8 +337,13 @@ func getLogsList(token map[string]string, query map[string]interface{}, esClient
 	)
 
 	if err != nil {
-		log.Error("failed exec ES query", zap.Error(err))
-		return logsList, getError(err)
+		if err.Error() == "context deadline exceeded" { // request timeout
+			log.Error("failed exec ES query -- request timeout", zap.Error(err))
+			return logsList, err
+		} else {
+			log.Error("failed exec ES query", zap.Error(err))
+			return logsList, getError(err)
+		}
 	}
 
 	var result map[string]interface{}
