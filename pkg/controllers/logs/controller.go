@@ -56,11 +56,16 @@ func initializeQueryParameters(gctx *gin.Context) logs.Parameters {
 }
 
 func emitFilteredLogs(gctx *gin.Context, logsList []string, err error) {
-
 	if err != nil {
 		if err.Error() == logs.NotFoundError().Error() { //If error is not nil, and logs are not nil, implies a user error has occurred
 			gctx.JSON(http.StatusBadRequest, &ResponseLogs{
 				Error: logs.NotFoundError().Error() + ", please check the input parameters",
+				Logs:  logsList,
+			})
+			return
+		} else if err.Error() == "context deadline exceeded" { // request timeout
+			gctx.JSON(http.StatusRequestTimeout, &ResponseLogs{
+				Error: err.Error() + ": request timeout",
 				Logs:  logsList,
 			})
 			return
